@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Produits - Porokhane Sagnse VIP</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="tete">
+        <div class="header-container">
+            <a href="index.html" class="brand">
+                <img src="img/logo.jpeg" alt="Logo Porokhane Sagnse VIP" class="ilogo" data-i18n-alt="brand_logo_alt">
+                <span class="logo" data-i18n="brand_name">Porokhane Sagnse VIP</span>
+            </a>
+            <nav class="nav" aria-label="Navigation principale">
+                <ul>
+                    <li><a href="accueil.html" data-i18n="nav_home">Accueil</a></li>
+                    <li><a href="produit.html" data-i18n="nav_products">Produit</a></li>
+                    <li><a href="live.html" data-i18n="nav_live">Live</a></li>
+                    <li><a href="contacte.html" data-i18n="nav_contact">Contact</a></li>
+                    <li><button type="button" id="lang-toggle" class="lang-toggle">Wolof</button></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="produits-page">
+        <section class="section-block">
+            <div class="section-title">
+                <p class="badge" data-i18n="catalog_badge">Catalogue</p>
+                <h1 data-i18n="available_products">Produits disponibles</h1>
+                <p data-i18n="products_filter_text">Filtrez rapidement les categories et ajoutez directement au panier.</p>
+            </div>
+
+            <div class="categories" data-i18n-aria-label="category_filters">
+                <button type="button" onclick="filtrer('Tous')" data-i18n="filter_all">Tous</button>
+                <button type="button" onclick="filtrer('Sac')" data-i18n="filter_bags">Sacs</button>
+                <button type="button" onclick="filtrer('Robe')" data-i18n="filter_dresses">Robes</button>
+                <button type="button" onclick="filtrer('Tissu')" data-i18n="filter_fabrics">Tissus</button>
+                <button type="button" onclick="filtrer('Collier')" data-i18n="filter_necklaces">Colliers</button>
+                <button type="button" onclick="filtrer('Chaussure')" data-i18n="filter_shoes">Chaussures</button>
+            </div>
+
+            <section class="announcements" aria-labelledby="catalogue-annonces-title">
+                <div class="section-title">
+                    <p class="badge" data-i18n="announcements_badge">Annonces</p>
+                    <h2 id="catalogue-annonces-title" data-i18n="first_to_see">Ce qu il faut voir en premier</h2>
+                </div>
+                <div class="announcement-grid" id="announcement-grid"></div>
+            </section>
+
+            <section id="liste-produits"></section>
+        </section>
+
+        <section class="cart-section" id="panier">
+            <div class="cart-header">
+                <div>
+                    <p class="badge" data-i18n="cart_badge">Panier</p>
+                    <h2 data-i18n="your_order">Votre commande</h2>
+                </div>
+                <button type="button" class="btn btn-secondary" id="clear-cart" data-i18n="clear_cart">Vider le panier</button>
+            </div>
+
+            <div id="cart-items" class="cart-list"></div>
+            <div class="cart-total" id="cart-total" data-i18n="total_default">Total : 0 FCFA</div>
+
+            <div class="cart-payment-info" id="payment-info">
+                <p data-i18n="loading_wave">Chargement des informations de paiement Wave...</p>
+            </div>
+
+            <form id="order-form" class="order-form">
+                <div class="order-grid">
+                    <label data-i18n="full_name">
+                        Nom complet
+                        <input type="text" name="clientNom" required>
+                    </label>
+                    <label data-i18n="phone">
+                        Telephone
+                        <input type="tel" name="telephone" inputmode="numeric" maxlength="15" pattern="[0-9 +()-]{8,15}" required>
+                    </label>
+                    <label data-i18n="delivery_address">
+                        Adresse de livraison
+                        <input type="text" name="adresse" required>
+                    </label>
+                    <label data-i18n="city_neighborhood">
+                        Ville / quartier
+                        <input type="text" name="ville" required>
+                    </label>
+                </div>
+
+                <label data-i18n="comment_optional">
+                    Commentaire (facultatif)
+                    <textarea name="commentaire" rows="3"></textarea>
+                </label>
+
+                <label data-i18n="wave_proof_required">
+                    Capture d ecran du paiement Wave (obligatoire)
+                    <input type="file" name="waveProof" accept="image/png,image/jpeg,image/webp" required>
+                </label>
+
+                <button id="order-submit" type="submit" class="btn" disabled data-i18n="send_order">Envoyer la commande</button>
+                <p id="order-message" class="order-message"></p>
+            </form>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <p data-i18n="footer_text">&copy; 2026 Porokhane Sagnse VIP. Tous droits reserves.</p>
+    </footer>
+    <script src="script.js"></script>
+</body>
+</html>

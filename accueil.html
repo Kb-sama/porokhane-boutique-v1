@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accueil - Porokhane Sagnse VIP</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="tete">
+        <div class="header-container">
+            <a href="index.html" class="brand">
+                <img src="img/logo.jpeg" alt="Logo Porokhane Sagnse VIP" class="ilogo" data-i18n-alt="brand_logo_alt">
+                <span class="logo" data-i18n="brand_name">Porokhane Sagnse VIP</span>
+            </a>
+            <nav class="nav" aria-label="Navigation principale">
+                <ul>
+                    <li><a href="accueil.html" data-i18n="nav_home">Accueil</a></li>
+                    <li><a href="produit.html" data-i18n="nav_products">Produit</a></li>
+                    <li><a href="live.html" data-i18n="nav_live">Live</a></li>
+                    <li><a href="contacte.html" data-i18n="nav_contact">Contact</a></li>
+                    <li><button type="button" id="lang-toggle" class="lang-toggle">Wolof</button></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main">
+        <section class="hero">
+            <div class="hero-content">
+                <p class="badge" id="hero-badge" data-i18n="hero_badge">Boutique mode et accessoires</p>
+                <h1 id="hero-title" data-i18n="hero_title">Des articles elegants pour chaque occasion</h1>
+                <p id="hero-subtitle" data-i18n="hero_subtitle">Decouvrez nos robes, sacs, chaussures et accessoires selectionnes pour leur qualite et leur style.</p>
+                <a href="produit.html" class="btn hero-btn" id="hero-button" data-i18n="hero_button">Voir les produits</a>
+            </div>
+        </section>
+
+        <section class="section-block announcements" aria-labelledby="annonces-title">
+            <div class="section-title">
+                <p class="badge" data-i18n="announcements_badge">Annonces</p>
+                <h2 id="annonces-title" data-i18n="announcements_title">Les mises en avant importantes</h2>
+                <p data-i18n="announcements_text">Les annonces, evenements et offres utiles apparaissent ici pour orienter les visiteurs plus vite.</p>
+            </div>
+            <div class="announcement-grid" id="announcement-grid"></div>
+        </section>
+
+        <section class="section-block evenements" aria-labelledby="evenements-title">
+            <div class="section-title">
+                <p class="badge" data-i18n="events_badge">Evenements</p>
+                <h2 id="evenements-title" data-i18n="events_title">Fil d actualite boutique</h2>
+                <p data-i18n="events_text">Un carrousel fluide pour afficher les sujets les plus importants sans surcharger la page.</p>
+            </div>
+            <div class="events-wrap">
+                <button class="events-btn prev" aria-label="Precedent" data-i18n-aria-label="previous">‹</button>
+                <div class="events-viewport" id="events-viewport" tabindex="0" aria-live="polite">
+                    <div class="events-track" id="events-track"></div>
+                </div>
+                <button class="events-btn next" aria-label="Suivant" data-i18n-aria-label="next">›</button>
+            </div>
+        </section>
+
+        <section class="section-block live-section" aria-labelledby="live-title">
+            <div class="live-header">
+                <p class="badge" data-i18n="live_badge">Live</p>
+                <h2 id="live-title" data-i18n="live_title">Aucun live en cours</h2>
+                <p data-i18n="live_text">Revenez plus tard ou suivez-nous pour etre averti du prochain direct.</p>
+            </div>
+            <div class="live-card">
+                <div class="live-video live-offline">
+                    <span class="live-dot"></span>
+                    <h3 data-i18n="live_offline_title">Le direct n a pas encore commence</h3>
+                    <p data-i18n="live_offline_text">Quand le live sera actif, la video apparaitra ici.</p>
+                </div>
+                <div class="live-actions">
+                    <h3 data-i18n="stay_informed">Rester informe</h3>
+                    <a class="btn" href="https://www.tiktok.com/@prokhanesagnsevip?is_from_webapp=1&sender_device=pc" target="_blank" rel="noopener noreferrer" data-i18n="follow_tiktok">Suivre sur TikTok</a>
+                    <a class="btn btn-secondary" href="https://wa.me/221774137575?text=Je%20souhaite%20etre%20informe%20du%20prochain%20live" target="_blank" rel="noopener noreferrer" data-i18n="notify_whatsapp">Etre averti sur WhatsApp</a>
+                </div>
+            </div>
+        </section>
+
+        <section class="section-block bnt-group" aria-label="Groupe WhatsApp" data-i18n-aria-label="whatsapp_group">
+            <a href="https://wa.me/221774137575?text=Bonjour%20je%20souhaite%20rejoindre%20le%20groupe%20WhatsApp" class="bnt-card" target="_blank" rel="noopener noreferrer">
+                <div class="bnt-icon">
+                    <img src="https://cdn-icons-png.flaticon.com/512/733/733585.png" alt="WhatsApp" class="whts" data-i18n-alt="whatsapp">
+                </div>
+                <div class="bnt-text">
+                    <h3 data-i18n="join_whatsapp_group">Rejoindre le groupe WhatsApp</h3>
+                    <p data-i18n="whatsapp_group_text">Recevez les nouveautes et les offres exclusives</p>
+                </div>
+            </a>
+        </section>
+
+        <a href="https://wa.me/221771509100?text=Bonjour%20je%20souhaite%20commander%20un%20produit." class="whatsapp-float" target="_blank" rel="noopener noreferrer">
+            <img src="https://cdn-icons-png.flaticon.com/512/733/733585.png" alt="WhatsApp" data-i18n-alt="whatsapp">
+        </a>
+    </main>
+
+    <footer class="footer">
+        <p data-i18n="footer_text">&copy; 2026 Porokhane Sagnse VIP. Tous droits reserves.</p>
+    </footer>
+    <script src="script.js"></script>
+</body>
+</html>

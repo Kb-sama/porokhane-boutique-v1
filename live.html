@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live - Porokhane Sagnse VIP</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="tete">
+        <div class="header-container">
+            <a href="index.html" class="brand">
+                <img src="img/logo.jpeg" alt="Logo Porokhane Sagnse VIP" class="ilogo" data-i18n-alt="brand_logo_alt">
+                <span class="logo" data-i18n="brand_name">Porokhane Sagnse VIP</span>
+            </a>
+            <nav class="nav" aria-label="Navigation principale">
+                <ul>
+                    <li><a href="accueil.html" data-i18n="nav_home">Accueil</a></li>
+                    <li><a href="produit.html" data-i18n="nav_products">Produit</a></li>
+                    <li><a href="live.html" data-i18n="nav_live">Live</a></li>
+                    <li><a href="contacte.html" data-i18n="nav_contact">Contact</a></li>
+                    <li><button type="button" id="lang-toggle" class="lang-toggle">Wolof</button></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="live-page">
+        <section class="section-block">
+            <div class="section-title">
+                <p class="badge" data-i18n="live_boutique_badge">Live boutique</p>
+                <h1 data-i18n="live_heading">Direct et rediffusion</h1>
+                <p data-i18n="live_page_text">Cette page concentre l information live, avec les annonces et la mise en avant des contenus les plus utiles.</p>
+            </div>
+
+            <section class="announcements" aria-labelledby="live-annonces-title">
+                <div class="section-title">
+                    <p class="badge" data-i18n="announcements_badge">Annonces</p>
+                    <h2 id="live-annonces-title" data-i18n="recent_posts">Publications recentes</h2>
+                </div>
+                <div class="announcement-grid" id="announcement-grid"></div>
+            </section>
+
+            <section class="live-section">
+                <div id="live-container"></div>
+            </section>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <p data-i18n="footer_text">&copy; 2026 Porokhane Sagnse VIP. Tous droits reserves.</p>
+    </footer>
+    <script src="live.js"></script>
+</body>
+</html>

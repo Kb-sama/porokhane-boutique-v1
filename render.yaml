@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: porokhane-boutique
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /
+    disk:
+      name: boutique-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: WAVE_NUMBER
+        sync: false
+      - key: DATABASE_PATH
+        value: /var/data/boutique.db

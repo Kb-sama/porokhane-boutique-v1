@@ -1,0 +1,26 @@
+[
+  {
+    "titre": "Nouvelle collection",
+    "date": "Chaque semaine",
+    "description": "Des arrivages selectionnes de sacs, robes et chaussures sont publies en priorite sur la page d'accueil.",
+    "accent": "Collection"
+  },
+  {
+    "titre": "Annonces live",
+    "date": "Avant chaque direct",
+    "description": "Les prochains lives sont mis en avant pour permettre aux clients de se preparer et poser leurs questions.",
+    "accent": "Live"
+  },
+  {
+    "titre": "Offres WhatsApp",
+    "date": "Disponible maintenant",
+    "description": "Les promotions et la disponibilite des produits sont partagees en un clic vers WhatsApp.",
+    "accent": "Promo"
+  },
+  {
+    "titre": "Commandes rapides",
+    "date": "24h/24",
+    "description": "Le panier et le paiement Wave sont optimises pour finaliser une commande sans friction.",
+    "accent": "Commande"
+  }
+]

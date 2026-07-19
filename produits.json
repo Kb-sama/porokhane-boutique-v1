@@ -1,0 +1,37 @@
+[
+    {
+        "id": 1,
+        "nom": "Sac a main luxe",
+        "categorie": "Sac",
+        "prix": 15000,
+        "image": "img/sac.jpg"
+    },
+    {
+        "id": 2,
+        "nom": "Robe Wax",
+        "categorie": "Robe",
+        "prix": 25000,
+        "image": "img/robe.jpg"
+    },
+    {
+        "id": 3,
+        "nom": "Tissu Bazin",
+        "categorie": "Tissu",
+        "prix": 10000,
+        "image": "img/tissue.jpg"
+    },
+    {
+        "id": 4,
+        "nom": "Collier Dore",
+        "categorie": "Collier",
+        "prix": 5000,
+        "image": "img/colier.jpg"
+    },
+    {
+        "id": 5,
+        "nom": "Chaussure elegante",
+        "categorie": "Chaussure",
+        "prix": 12000,
+        "image": "img/chaussure.jpg"
+    }
+]

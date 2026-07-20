@@ -27,6 +27,7 @@ const isProduction = process.env.NODE_ENV === 'production';
 
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
+app.set('trust proxy', 1);
 app.use(session({
   secret: sessionSecret,
   resave: false,

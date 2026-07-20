@@ -259,7 +259,12 @@ app.post('/api/login', loginLimiter, (req, res) => {
     if (err || !user) return res.status(401).json({ error: 'Identifiants invalides' });
     if (!verifyPassword(password, user.password)) return res.status(401).json({ error: 'Identifiants invalides' });
     req.session.user = { id: user.id, email: user.email, role: user.role };
-    res.json({ success: true });
+    req.session.save((saveErr) => {
+      if (saveErr) {
+        return res.status(500).json({ error: 'Impossible de créer la session' });
+      }
+      res.json({ success: true });
+    });
   });
 });
 

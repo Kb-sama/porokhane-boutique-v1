@@ -1,6 +1,8 @@
 const form = document.getElementById('login-form');
 const message = document.getElementById('message');
 const lockoutTimer = document.getElementById('lockout-timer');
+const passwordInput = form.querySelector('input[name="password"]');
+const showPassword = document.getElementById('show-password');
 
 let countdownInterval = null;
 
@@ -15,6 +17,9 @@ function setFormDisabled(disabled) {
     form.querySelectorAll('input, button').forEach((element) => {
         element.disabled = disabled;
     });
+    if (showPassword) {
+        showPassword.disabled = disabled;
+    }
 }
 
 function formatDuration(seconds) {
@@ -76,3 +81,9 @@ form.addEventListener('submit', async (event) => {
         startLockoutCountdown(Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : 15 * 60);
     }
 });
+
+if (showPassword && passwordInput) {
+    showPassword.addEventListener('change', () => {
+        passwordInput.type = showPassword.checked ? 'text' : 'password';
+    });
+}

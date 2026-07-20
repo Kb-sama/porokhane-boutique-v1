@@ -64,6 +64,23 @@ select {
     color: #2b1f1a;
 }
 
+.password-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 14px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #4f3a32;
+}
+
+.password-toggle input {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    accent-color: #8a2f10;
+}
+
 .admin-card button {
     width: 100%;
     margin-top: 24px;

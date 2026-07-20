@@ -19,5 +19,11 @@ services:
         sync: false
       - key: WAVE_NUMBER
         sync: false
+      - key: CONTACT_WHATSAPP
+        sync: false
+      - key: TIKTOK_URL
+        sync: false
+      - key: INSTAGRAM_URL
+        sync: false
       - key: DATABASE_PATH
         value: /var/data/boutique.db

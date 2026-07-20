@@ -11,10 +11,11 @@ require('dotenv').config();
 
 const app = express();
 const port = process.env.PORT || 3000;
+const localDbPath = path.join(__dirname, 'database', 'boutique.db');
 const defaultDbPath = process.env.RENDER
   ? '/var/data/boutique.db'
-  : path.join(__dirname, 'database', 'boutique.db');
-const dbPath = process.env.DATABASE_PATH || defaultDbPath;
+  : localDbPath;
+const dbPath = resolveDatabasePath(process.env.DATABASE_PATH || defaultDbPath, localDbPath);
 const sessionSecret = process.env.SESSION_SECRET || 'porokhane-secret';
 const defaultAdminPassword = process.env.ADMIN_PASSWORD || 'admin123';
 const waveNumber = process.env.WAVE_NUMBER || '+221771509100';
@@ -37,6 +38,33 @@ app.use(session({
   }
 }));
 
+function resolveDatabasePath(preferredPath, fallbackPath) {
+  const candidates = [preferredPath, fallbackPath];
+
+  for (const candidate of candidates) {
+    const candidateDir = path.dirname(candidate);
+    const resolvedDir = path.resolve(candidateDir);
+    const workspaceRoot = path.resolve(__dirname);
+    const isWorkspacePath = resolvedDir === workspaceRoot || resolvedDir.startsWith(`${workspaceRoot}${path.sep}`);
+
+    try {
+      if (!fs.existsSync(candidateDir)) {
+        if (!isWorkspacePath) {
+          throw Object.assign(new Error('Database directory is outside the workspace'), { code: 'EACCES' });
+        }
+        fs.mkdirSync(candidateDir, { recursive: true });
+      }
+
+      fs.accessSync(candidateDir, fs.constants.W_OK | fs.constants.X_OK);
+      return candidate;
+    } catch (error) {
+      console.warn(`Database directory ${candidateDir} is not writable (${error.code || error.message}); trying fallback.`);
+    }
+  }
+
+  throw new Error(`Unable to create a writable database directory for ${preferredPath} or ${fallbackPath}`);
+}
+
 app.use('/img', express.static(path.join(__dirname, 'img')));
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/index.html', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
@@ -44,6 +72,7 @@ app.get('/accueil.html', (req, res) => res.sendFile(path.join(__dirname, 'accuei
 app.get('/produit.html', (req, res) => res.sendFile(path.join(__dirname, 'produit.html')));
 app.get('/contacte.html', (req, res) => res.sendFile(path.join(__dirname, 'contacte.html')));
 app.get('/live.html', (req, res) => res.sendFile(path.join(__dirname, 'live.html')));
+app.get('/politique-confidentialite.html', (req, res) => res.sendFile(path.join(__dirname, 'politique-confidentialite.html')));
 app.get('/style.css', (req, res) => res.sendFile(path.join(__dirname, 'style.css')));
 app.get('/script.js', (req, res) => res.sendFile(path.join(__dirname, 'script.js')));
 app.get('/live.js', (req, res) => res.sendFile(path.join(__dirname, 'live.js')));
@@ -51,7 +80,6 @@ app.get('/admin/admin.css', (req, res) => res.sendFile(path.join(__dirname, 'adm
 app.get('/admin/login.js', (req, res) => res.sendFile(path.join(__dirname, 'admin', 'login.js')));
 app.get('/admin/dashboard.js', (req, res) => res.sendFile(path.join(__dirname, 'admin', 'dashboard.js')));
 
-if (!fs.existsSync(path.dirname(dbPath))) fs.mkdirSync(path.dirname(dbPath), { recursive: true });
 const db = new sqlite3.Database(dbPath);
 
 function hashPassword(password) {
@@ -543,4 +571,4 @@ if (require.main === module) {
   app.listen(port, () => console.log(`Server listening on http://localhost:${port}`));
 }
 
-module.exports = { app, db, hashPassword, verifyPassword, validateProductPayload };
+module.exports = { app, db, hashPassword, verifyPassword, validateProductPayload, resolveDatabasePath };

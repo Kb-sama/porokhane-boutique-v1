@@ -16,12 +16,17 @@
 2. Mets ce dépôt.
 3. Commande de build : `npm install`
 4. Commande de démarrage : `npm start`
-5. Ajoute les variables :
+5. Ajoute les variables dans Render :
    - `NODE_ENV=production`
    - `SESSION_SECRET=un_texte_secret`
    - `ADMIN_PASSWORD=ton_mot_de_passe`
    - `WAVE_NUMBER=+221...`
+   - `CONTACT_WHATSAPP=+221...`
+   - `TIKTOK_URL=https://www.tiktok.com/...`
+   - `INSTAGRAM_URL=https://www.instagram.com/...`
    - `DATABASE_PATH=/var/data/boutique.db` si tu montes un disque persistant Render
+
+Si tu veux importer rapidement depuis ton `.env` local, garde les mêmes noms de clés et copie leurs valeurs dans le panneau "Environment" de Render.
 
 ## Persistance de la base
 - En local, SQLite reste dans `database/boutique.db`.

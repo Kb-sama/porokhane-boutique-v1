@@ -18,9 +18,10 @@
 4. Commande de démarrage : `npm start`
 5. Ajoute les variables dans Render :
    - `NODE_ENV=production`
-   - `SESSION_SECRET=un_texte_secret`
-   - `ADMIN_PASSWORD=ton_mot_de_passe`
-   - `WAVE_NUMBER=+221...`
+- `SESSION_SECRET=un_texte_secret`
+- `ADMIN_PASSWORD=ton_mot_de_passe`
+- `ADMIN_EMAIL=mame79915@gmail.com`
+- `WAVE_NUMBER=+221...`
    - `CONTACT_WHATSAPP=+221...`
    - `TIKTOK_URL=https://www.tiktok.com/...`
    - `INSTAGRAM_URL=https://www.instagram.com/...`
@@ -34,7 +35,7 @@ Si tu veux importer rapidement depuis ton `.env` local, garde les mêmes noms de
 - Sans disque persistant, la base sera recréée après redéploiement.
 
 ## Connexion admin
-- Email : `admin@boutique.local`
+- Email : `mame79915@gmail.com`
 - Mot de passe : celui de `ADMIN_PASSWORD`
 
 ## Pages utiles

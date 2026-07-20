@@ -17,7 +17,8 @@ const defaultDbPath = process.env.RENDER
   : localDbPath;
 const dbPath = resolveDatabasePath(process.env.DATABASE_PATH || defaultDbPath, localDbPath);
 const sessionSecret = process.env.SESSION_SECRET || 'porokhane-secret';
-const defaultAdminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+const defaultAdminEmail = process.env.ADMIN_EMAIL || 'mame79915@gmail.com';
+const defaultAdminPassword = process.env.ADMIN_PASSWORD || 'V7!qR2#nL9@xP4$kZ8&mT6';
 const waveNumber = process.env.WAVE_NUMBER || '+221771509100';
 const contactWhatsApp = process.env.CONTACT_WHATSAPP || '+221774137575';
 const tiktokUrl = process.env.TIKTOK_URL || 'https://www.tiktok.com/@prokhanesagnsevip?is_from_webapp=1&sender_device=pc';
@@ -213,8 +214,14 @@ db.serialize(() => {
     FOREIGN KEY(order_id) REFERENCES orders(id)
   )`);
 
-  db.run('INSERT OR IGNORE INTO users (email, password, role) VALUES (?, ?, ?)', [
-    'admin@boutique.local',
+  db.run(`
+    INSERT INTO users (email, password, role)
+    VALUES (?, ?, ?)
+    ON CONFLICT(email) DO UPDATE SET
+      password = excluded.password,
+      role = excluded.role
+  `, [
+    defaultAdminEmail,
     hashPassword(defaultAdminPassword),
     'administrateur'
   ]);

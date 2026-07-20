@@ -68,7 +68,8 @@ Object.assign(locales.fr, {
     whatsapp_group_text: 'Recevez les nouveautes et les offres exclusives',
     address_text: 'Niogui HLM Grand Yoff, côté rond-point mairie bi.',
     see_map: 'Voir sur la carte',
-    footer_text: '© 2026 Porokhane Sagnse VIP. Tous droits reserves.',
+        footer_text: '© 2026 Porokhane Sagnse VIP. Tous droits reserves.',
+        privacy_policy: 'Politique de confidentialité',
     previous: 'Precedent',
     next: 'Suivant',
     whatsapp: 'WhatsApp',
@@ -114,7 +115,8 @@ Object.assign(locales.wo, {
     whatsapp_group_text: 'Jot ay xibaar yu bees ak promo yi.',
     address_text: 'Niogui HLM Grand Yoff, ci wetu rond-point mairie bi.',
     see_map: 'Wonee ci carte bi',
-    footer_text: '© 2026 Porokhane Sagnse VIP. Benn droit amul lu ëpp.',
+        footer_text: '© 2026 Porokhane Sagnse VIP. Benn droit amul lu ëpp.',
+        privacy_policy: 'Politique de confidentialité',
     previous: 'Ginnaaw',
     next: 'Gannaaw',
     whatsapp: 'WhatsApp',
@@ -154,6 +156,14 @@ function applyLocale() {
     document.querySelectorAll('[data-i18n-aria-label]').forEach((el) => {
         const key = el.getAttribute('data-i18n-aria-label');
         if (t[key]) el.setAttribute('aria-label', t[key]);
+    });
+    document.querySelectorAll('[data-i18n-html]').forEach((el) => {
+        const key = el.getAttribute('data-i18n-html');
+        if (key === 'footer_text') {
+            el.innerHTML = `${t.footer_text} <a href="politique-confidentialite.html">${t.privacy_policy}</a>`;
+        } else if (t[key]) {
+            el.innerHTML = t[key];
+        }
     });
     const langToggle = document.getElementById('lang-toggle');
     if (langToggle) langToggle.textContent = lang === 'fr' ? 'Wolof' : 'Français';

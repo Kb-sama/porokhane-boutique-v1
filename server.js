@@ -112,7 +112,7 @@ function validateProductPayload(payload) {
   const disponible = Number(payload.disponible ?? 1);
 
   if (!nom) errors.push('Le nom du produit est requis');
-  if (!['tissue', 'robe', 'autre'].includes(productType)) errors.push('Le type du produit est invalide');
+  if (!['tissue', 'robe', 'sac', 'chaussure', 'colier', 'autre'].includes(productType)) errors.push('Le type du produit est invalide');
   if (!Number.isFinite(prix) || prix < 0) errors.push('Le prix doit être un nombre positif');
   if (!Number.isFinite(stock) || stock < 0) errors.push('Le stock doit être un nombre positif');
   if (!Number.isFinite(promotion) || promotion < 0) errors.push('La promotion doit être un nombre positif');

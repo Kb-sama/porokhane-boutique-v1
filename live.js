@@ -33,39 +33,24 @@ function isTikTokUrl(url) {
     }
 }
 
-function buildLiveButtons(liveUrl) {
-    return `
-        <div class="live-actions">
-            <a href="${liveUrl}" target="_blank" rel="noreferrer" class="btn-live">
-                ${t.watchLive}
-            </a>
-            <a href="https://www.tiktok.com/@prokhanesagnsevip" target="_blank" rel="noreferrer" class="btn-live btn-live-secondary">
-                ${t.tiktokVideos}
-            </a>
-        </div>
-    `;
-}
-
 function renderLive(data) {
     if (!container) return;
 
     if (data.statut === 'on' || data.statut === 'online') {
-        const liveUrl = data.lien || 'https://www.tiktok.com';
-        const liveContent = isTikTokUrl(liveUrl)
-            ? buildLiveButtons(liveUrl)
-            : `
-                <iframe
-                    src="${liveUrl}"
-                    title="Live Porokhane Sagnse VIP"
-                    allowfullscreen>
-                </iframe>
-                ${buildLiveButtons(liveUrl)}
-              `;
-
         container.innerHTML = `
             <div class="live-online">
                 <span class="badge-live">${t.liveActive}</span>
-                ${liveContent}
+                <iframe
+                    src="${data.lien}"
+                    title="Live Porokhane Sagnse VIP"
+                    allowfullscreen>
+                </iframe>
+                <a href="${data.lien}"
+                   target="_blank"
+                   rel="noreferrer"
+                   class="btn-live">
+                    ${t.watchLive}
+                </a>
             </div>
         `;
     } else {

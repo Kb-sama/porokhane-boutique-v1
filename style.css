@@ -678,14 +678,6 @@ button {
     font-weight: 700;
 }
 
-.btn-live-secondary {
-    background: #1f1f1f;
-}
-
-.live-actions .btn-live {
-    margin-top: 0;
-}
-
 .live-actions {
     display: flex;
     flex-direction: column;

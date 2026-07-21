@@ -23,6 +23,8 @@ const waveNumber = process.env.WAVE_NUMBER || '+221771509100';
 const contactWhatsApp = process.env.CONTACT_WHATSAPP || '+221774137575';
 const tiktokUrl = process.env.TIKTOK_URL || 'https://www.tiktok.com/@prokhanesagnsevip?is_from_webapp=1&sender_device=pc';
 const instagramUrl = process.env.INSTAGRAM_URL || 'https://www.instagram.com/porokhane_sagnese_vip?igsh=dDR5eWNicXBvd3di';
+const orderProofDir = path.join(__dirname, 'uploads', 'orders');
+const orderProofRetentionDays = Number(process.env.ORDER_PROOF_RETENTION_DAYS || 30);
 const isProduction = process.env.NODE_ENV === 'production';
 
 app.use(bodyParser.json({ limit: '10mb' }));
@@ -68,6 +70,7 @@ function resolveDatabasePath(preferredPath, fallbackPath) {
 }
 
 app.use('/img', express.static(path.join(__dirname, 'img')));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/index.html', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/accueil.html', (req, res) => res.sendFile(path.join(__dirname, 'accueil.html')));
@@ -95,6 +98,46 @@ function verifyPassword(password, hashedPassword) {
 function generateOrderNumber() {
   const random = crypto.randomBytes(3).toString('hex').toUpperCase();
   return `PK-${Date.now()}-${random}`;
+}
+
+function ensureOrderProofDir() {
+  if (!fs.existsSync(orderProofDir)) {
+    fs.mkdirSync(orderProofDir, { recursive: true });
+  }
+}
+
+function saveOrderProof(dataUrl, orderNumber) {
+  if (typeof dataUrl !== 'string' || !dataUrl.startsWith('data:image/')) return null;
+  const match = dataUrl.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
+  if (!match) return null;
+  const mime = match[1];
+  const base64 = match[2];
+  const extension = mime.includes('png') ? 'png' : mime.includes('webp') ? 'webp' : 'jpg';
+  ensureOrderProofDir();
+  const fileName = `${orderNumber}-${Date.now()}.${extension}`;
+  const relativePath = path.posix.join('uploads', 'orders', fileName);
+  const absolutePath = path.join(orderProofDir, fileName);
+  fs.writeFileSync(absolutePath, Buffer.from(base64, 'base64'));
+  return `/${relativePath}`.replace(/\\/g, '/');
+}
+
+function cleanupOldOrderProofs(retentionDays = orderProofRetentionDays) {
+  const days = Number.isFinite(retentionDays) ? retentionDays : 30;
+  if (days <= 0) return;
+  const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+  ensureOrderProofDir();
+  fs.readdir(orderProofDir, (err, files) => {
+    if (err) return;
+    files.forEach((file) => {
+      const fullPath = path.join(orderProofDir, file);
+      fs.stat(fullPath, (statErr, stats) => {
+        if (statErr) return;
+        if (stats.mtimeMs < cutoff) {
+          fs.unlink(fullPath, () => {});
+        }
+      });
+    });
+  });
 }
 
 function validateProductPayload(payload) {
@@ -182,6 +225,16 @@ db.serialize(() => {
     label TEXT,
     numero TEXT,
     message TEXT
+  )`);
+  db.run(`CREATE TABLE IF NOT EXISTS custom_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    titre TEXT NOT NULL,
+    description TEXT NOT NULL,
+    accent TEXT DEFAULT '',
+    date TEXT DEFAULT '',
+    image TEXT DEFAULT '',
+    ordre INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
   )`);
   db.run(`CREATE TABLE IF NOT EXISTS live_status (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -493,7 +546,9 @@ app.get('/api/public/events', (req, res) => {
 app.get('/api/public/payment-instructions', (req, res) => {
   res.json({
     waveNumber,
-    beneficiaire: 'Porokhane Sagnse VIP',
+    secondaryNumber: '221771509100',
+    beneficiaire: 'Diary Diop',
+    whatsappNumber: '221774137575',
     instructions: 'Payez via Wave, prenez une capture d écran de confirmation, puis téléversez-la dans le formulaire de commande.'
   });
 });
@@ -518,10 +573,15 @@ app.post('/api/orders', (req, res) => {
 
   const total = normalizedItems.reduce((sum, item) => sum + item.prix * item.quantite, 0);
   const numeroCommande = generateOrderNumber();
+  const proofPath = saveOrderProof(waveProof, numeroCommande);
+
+  if (!proofPath) {
+    return res.status(400).json({ error: 'La preuve Wave doit être une image valide.' });
+  }
 
   db.run(`INSERT INTO orders (numero_commande, client_nom, telephone, adresse, ville, commentaire, statut, montant_total, wave_numero, preuve_paiement)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-  [numeroCommande, String(clientNom).trim(), String(telephone).trim(), String(adresse).trim(), String(ville).trim(), String(commentaire || '').trim(), 'en_attente', total, waveNumber, waveProof],
+  [numeroCommande, String(clientNom).trim(), String(telephone).trim(), String(adresse).trim(), String(ville).trim(), String(commentaire || '').trim(), 'en_attente', total, waveNumber, proofPath],
   function(err) {
     if (err) return res.status(500).json({ error: err.message });
 
@@ -574,6 +634,55 @@ app.patch('/api/orders/:id/status', requireLogin, (req, res) => {
   });
 });
 
+app.post('/api/orders/cleanup', requireLogin, (req, res) => {
+  const keepLast = Math.max(0, Number(req.body.keepLast || 0));
+  const olderThanDays = Math.max(0, Number(req.body.olderThanDays || 0));
+
+  const deleteByAge = () => {
+    if (!olderThanDays) return Promise.resolve({ deletedOrders: 0, deletedItems: 0 });
+    const cutoff = new Date(Date.now() - olderThanDays * 24 * 60 * 60 * 1000).toISOString();
+    return new Promise((resolve, reject) => {
+      db.all('SELECT id FROM orders WHERE created_at < ? ORDER BY id ASC', [cutoff], (err, rows) => {
+        if (err) return reject(err);
+        const ids = rows.map(row => row.id);
+        if (!ids.length) return resolve({ deletedOrders: 0, deletedItems: 0 });
+        const placeholders = ids.map(() => '?').join(',');
+        db.run(`DELETE FROM order_items WHERE order_id IN (${placeholders})`, ids, function(err2) {
+          if (err2) return reject(err2);
+          db.run(`DELETE FROM orders WHERE id IN (${placeholders})`, ids, function(err3) {
+            if (err3) return reject(err3);
+            resolve({ deletedOrders: rows.length, deletedItems: this.changes });
+          });
+        });
+      });
+    });
+  };
+
+  const deleteByKeepLast = () => {
+    if (!keepLast) return Promise.resolve({ deletedOrders: 0, deletedItems: 0 });
+    return new Promise((resolve, reject) => {
+      db.all('SELECT id FROM orders ORDER BY id DESC LIMIT -1 OFFSET ?', [keepLast], (err, rows) => {
+        if (err) return reject(err);
+        const ids = rows.map(row => row.id);
+        if (!ids.length) return resolve({ deletedOrders: 0, deletedItems: 0 });
+        const placeholders = ids.map(() => '?').join(',');
+        db.run(`DELETE FROM order_items WHERE order_id IN (${placeholders})`, ids, function(err2) {
+          if (err2) return reject(err2);
+          db.run(`DELETE FROM orders WHERE id IN (${placeholders})`, ids, function(err3) {
+            if (err3) return reject(err3);
+            resolve({ deletedOrders: rows.length, deletedItems: this.changes });
+          });
+        });
+      });
+    });
+  };
+
+  deleteByAge()
+    .then(() => deleteByKeepLast())
+    .then((result) => res.json({ success: true, ...result }))
+    .catch((err) => res.status(500).json({ error: err.message }));
+});
+
 app.get('/admin/login.html', (req, res) => res.sendFile(path.join(__dirname, 'admin', 'login.html')));
 app.get('/admin/dashboard.html', requireLogin, (req, res) => res.sendFile(path.join(__dirname, 'admin', 'dashboard.html')));
 app.get('/admin/*', requireLogin, (req, res) => {
@@ -581,6 +690,8 @@ app.get('/admin/*', requireLogin, (req, res) => {
 });
 
 if (require.main === module) {
+  cleanupOldOrderProofs();
+  setInterval(() => cleanupOldOrderProofs(), 1000 * 60 * 60 * 6);
   app.listen(port, () => console.log(`Server listening on http://localhost:${port}`));
 }
 

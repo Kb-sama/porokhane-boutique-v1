@@ -42,6 +42,21 @@
                 <div class="announcement-grid" id="announcement-grid"></div>
             </section>
 
+            <section class="section-block evenements" aria-labelledby="live-evenements-title">
+                <div class="section-title">
+                    <p class="badge" data-i18n="events_badge">Evenements</p>
+                    <h2 id="live-evenements-title" data-i18n="events_title">Fil d actualite boutique</h2>
+                    <p data-i18n="events_text">Un carrousel fluide pour afficher les sujets les plus importants sans surcharger la page.</p>
+                </div>
+                <div class="events-wrap">
+                    <button class="events-btn prev" aria-label="Precedent" data-i18n-aria-label="previous">‹</button>
+                    <div class="events-viewport" id="events-viewport" tabindex="0" aria-live="polite">
+                        <div class="events-track" id="events-track"></div>
+                    </div>
+                    <button class="events-btn next" aria-label="Suivant" data-i18n-aria-label="next">›</button>
+                </div>
+            </section>
+
             <section class="live-section">
                 <div id="live-container"></div>
             </section>

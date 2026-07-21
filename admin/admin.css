@@ -258,6 +258,69 @@ button:hover {
     min-height: 220px;
 }
 
+.cleanup-panel {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+    align-items: end;
+}
+
+.cleanup-panel label {
+    display: block;
+    font-weight: 600;
+}
+
+.cleanup-panel input {
+    width: 100%;
+    margin-top: 8px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    border: 1px solid #e4d7cf;
+    background: #fff;
+}
+
+.cleanup-panel button {
+    height: 100%;
+}
+
+.event-card-list {
+    display: grid;
+    gap: 12px;
+    margin-top: 14px;
+}
+
+.event-card-item {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: flex-start;
+    padding: 16px;
+    border-radius: 18px;
+    border: 1px solid #e8d9cf;
+    background: #fcf8f5;
+}
+
+.event-card-item strong {
+    display: block;
+    color: #8a2f10;
+    margin-bottom: 6px;
+}
+
+.event-card-item p {
+    margin-bottom: 8px;
+    color: #4f3a32;
+}
+
+.event-card-item small {
+    color: #6f5b53;
+}
+
+.event-card-item button {
+    background: #6f5b53;
+    flex-shrink: 0;
+}
+
 .modal {
     position: fixed;
     inset: 0;

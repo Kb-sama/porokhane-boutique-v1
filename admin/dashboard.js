@@ -24,10 +24,25 @@ const takePhotoButton = document.getElementById('take-photo');
 const stopCameraButton = document.getElementById('stop-camera');
 const siteTextsInput = document.getElementById('site-texts-input');
 const saveSiteTexts = document.getElementById('save-site-texts');
+const catalogCategoriesInput = document.getElementById('catalog-categories-input');
+const featuredCategoriesInput = document.getElementById('featured-categories-input');
+const saveCatalogConfig = document.getElementById('save-catalog-config');
+const eventCardForm = document.getElementById('event-card-form');
+const eventCardTitle = document.getElementById('event-card-title');
+const eventCardDescription = document.getElementById('event-card-description');
+const eventCardAccent = document.getElementById('event-card-accent');
+const eventCardDate = document.getElementById('event-card-date');
+const eventCardImage = document.getElementById('event-card-image');
+const eventCardList = document.getElementById('event-card-list');
+const saveEventCards = document.getElementById('save-event-cards');
 const liveForm = document.getElementById('live-form');
 const logoutButton = document.getElementById('logout-button');
+const cleanupOrdersButton = document.getElementById('cleanup-orders');
+const cleanupKeepLast = document.getElementById('cleanup-keep-last');
+const cleanupOlderThan = document.getElementById('cleanup-older-than');
 let cameraStream = null;
 let cachedProducts = [];
+let eventCards = [];
 
 function showToast(message) {
     let toast = document.querySelector('.toast');
@@ -194,7 +209,46 @@ async function fetchOrders(){
 async function fetchSiteTexts(){
     const res = await fetch('/api/site-texts');
     const texts = await res.json();
-    siteTextsInput.value = texts.map(item => `${item.key}=${item.value}`).join('\n');
+    const textMap = new Map(texts.map(item => [item.key, item.value]));
+    siteTextsInput.value = texts
+        .filter(item => !['catalog_categories', 'featured_categories', 'event_cards'].includes(item.key))
+        .map(item => `${item.key}=${item.value}`)
+        .join('\n');
+    if (catalogCategoriesInput) catalogCategoriesInput.value = textMap.get('catalog_categories') || '';
+    if (featuredCategoriesInput) featuredCategoriesInput.value = textMap.get('featured_categories') || '';
+    try {
+        eventCards = JSON.parse(textMap.get('event_cards') || '[]');
+        if (!Array.isArray(eventCards)) eventCards = [];
+    } catch {
+        eventCards = [];
+    }
+    renderEventCards();
+}
+
+function renderEventCards() {
+    if (!eventCardList) return;
+    if (!eventCards.length) {
+        eventCardList.innerHTML = '<p class="message-erreur">Aucune carte événement ajoutée.</p>';
+        return;
+    }
+    eventCardList.innerHTML = eventCards.map((card, index) => `
+        <article class="event-card-item">
+            <div>
+                <strong>${card.titre || 'Sans titre'}</strong>
+                <p>${card.description || ''}</p>
+                <small>${card.accent || '—'} ${card.date ? `• ${card.date}` : ''}</small>
+            </div>
+            <button type="button" class="delete-event-card" data-index="${index}">Supprimer</button>
+        </article>
+    `).join('');
+}
+
+async function saveEventCardsConfig() {
+    await fetch('/api/site-texts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: 'event_cards', value: JSON.stringify(eventCards) })
+    });
 }
 
 async function fetchLive(){
@@ -324,6 +378,88 @@ saveSiteTexts.addEventListener('click', async () => {
     await Promise.all(requests);
     showToast('Textes enregistrés');
 });
+
+if (saveCatalogConfig) {
+    saveCatalogConfig.addEventListener('click', async () => {
+        const requests = [
+            fetch('/api/site-texts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ key: 'catalog_categories', value: (catalogCategoriesInput?.value || '').trim() })
+            }),
+            fetch('/api/site-texts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ key: 'featured_categories', value: (featuredCategoriesInput?.value || '').trim() })
+            })
+        ];
+        await Promise.all(requests);
+        showToast('Catalogue enregistré');
+    });
+}
+
+if (eventCardForm) {
+    eventCardForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const card = {
+            titre: String(eventCardTitle?.value || '').trim(),
+            description: String(eventCardDescription?.value || '').trim(),
+            accent: String(eventCardAccent?.value || '').trim(),
+            date: String(eventCardDate?.value || '').trim(),
+            image: String(eventCardImage?.value || '').trim()
+        };
+
+        if (!card.titre || !card.description) {
+            showToast('Titre et texte sont requis');
+            return;
+        }
+
+        eventCards.unshift(card);
+        await saveEventCardsConfig();
+        renderEventCards();
+        eventCardForm.reset();
+        showToast('Carte événement ajoutée');
+    });
+}
+
+if (eventCardList) {
+    eventCardList.addEventListener('click', async (event) => {
+        const button = event.target.closest('.delete-event-card');
+        if (!button) return;
+        const index = Number(button.dataset.index);
+        if (!Number.isInteger(index)) return;
+        eventCards.splice(index, 1);
+        await saveEventCardsConfig();
+        renderEventCards();
+        showToast('Carte événement supprimée');
+    });
+}
+
+if (saveEventCards) {
+    saveEventCards.addEventListener('click', async () => {
+        await saveEventCardsConfig();
+        showToast('Cartes événement enregistrées');
+    });
+}
+
+if (cleanupOrdersButton) {
+    cleanupOrdersButton.addEventListener('click', async () => {
+        const keepLast = Number(cleanupKeepLast?.value || 0);
+        const olderThanDays = Number(cleanupOlderThan?.value || 0);
+        const res = await fetch('/api/orders/cleanup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ keepLast, olderThanDays })
+        });
+        const result = await res.json();
+        if (!res.ok) {
+            showToast(result.error || 'Erreur de nettoyage');
+            return;
+        }
+        showToast('Base nettoyée');
+        fetchOrders();
+    });
+}
 
 liveForm.addEventListener('submit', async (event) => {
     event.preventDefault();

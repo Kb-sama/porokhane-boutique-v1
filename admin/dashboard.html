@@ -65,7 +65,7 @@
                             </select>
                         </label>
                         <label>Prix (FCFA)
-                            <input name="prix" type="number" min="0" required>
+                            <input name="prix" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="10000" required>
                         </label>
                         <label>Stock
                             <input name="stock" type="number" min="0" required>
@@ -153,8 +153,52 @@
                 <textarea id="site-texts-input" rows="8"></textarea>
                 <button id="save-site-texts">Enregistrer</button>
             </section>
+            <section id="catalog-config" class="admin-section">
+                <h2>Catégories du catalogue</h2>
+                <p>Une ligne par clé. Utilisez des valeurs séparées par des virgules.</p>
+                <label>Catégories visibles
+                    <textarea id="catalog-categories-input" rows="3" placeholder="Sac, Robe, Tissu, Collier, Chaussure"></textarea>
+                </label>
+                <label>Catégories suggérées
+                    <textarea id="featured-categories-input" rows="3" placeholder="Sac, Chaussure, Collier"></textarea>
+                </label>
+                <button id="save-catalog-config" type="button">Enregistrer le catalogue</button>
+            </section>
+            <section id="event-config" class="admin-section">
+                <h2>Cartes evenement</h2>
+                <p>Ajoute une carte sans JSON. Tu remplis le formulaire, puis elle apparaît dans la liste ci-dessous.</p>
+                <form id="event-card-form">
+                    <label>Titre
+                        <input id="event-card-title" type="text" required placeholder="Nouvelle collection">
+                    </label>
+                    <label>Texte
+                        <textarea id="event-card-description" rows="3" required placeholder="Des arrivages sélectionnés sont publiés."></textarea>
+                    </label>
+                    <label>Badge
+                        <input id="event-card-accent" type="text" placeholder="Collection">
+                    </label>
+                    <label>Indication de temps
+                        <input id="event-card-date" type="text" placeholder="Chaque semaine">
+                    </label>
+                    <label>Image
+                        <input id="event-card-image" type="text" placeholder="img/logo.jpeg">
+                    </label>
+                    <button type="submit">Ajouter la carte</button>
+                </form>
+                <div id="event-card-list" class="event-card-list"></div>
+                <button id="save-event-cards" type="button">Enregistrer les cartes evenement</button>
+            </section>
             <section id="orders" class="admin-section">
                 <h2>Commandes Wave</h2>
+                <div class="cleanup-panel">
+                    <label>Garder les dernières commandes
+                        <input id="cleanup-keep-last" type="number" min="0" value="20">
+                    </label>
+                    <label>Supprimer les commandes plus vieilles que (jours)
+                        <input id="cleanup-older-than" type="number" min="0" value="30">
+                    </label>
+                    <button id="cleanup-orders" type="button">Nettoyer la base</button>
+                </div>
                 <table id="orders-table">
                     <thead>
                         <tr>

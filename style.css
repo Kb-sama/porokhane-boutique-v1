@@ -332,6 +332,47 @@ button {
     font-weight: 700;
 }
 
+.trend-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.trend-card {
+    overflow: hidden;
+    border-radius: 20px;
+    background: linear-gradient(180deg, #fffdfb 0%, #f8efe8 100%);
+    border: 1px solid rgba(138, 47, 16, 0.08);
+    box-shadow: 0 12px 24px rgba(43, 31, 26, 0.05);
+}
+
+.trend-card img {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+    display: block;
+}
+
+.trend-card-body {
+    padding: 16px;
+}
+
+.trend-card-body h3 {
+    margin: 10px 0 8px;
+    color: var(--brand);
+}
+
+.trend-card-body p {
+    color: var(--muted);
+    line-height: 1.5;
+}
+
+.trend-card-body strong {
+    display: inline-block;
+    margin-top: 10px;
+    color: var(--text);
+}
+
 .evenements,
 .live-section,
 .produit,
@@ -349,24 +390,34 @@ button {
 }
 
 .events-btn {
-    min-width: 48px;
+    min-width: 58px;
     border: 0;
-    border-radius: 16px;
-    background: var(--surface);
+    border-radius: 18px;
+    background: linear-gradient(180deg, #f3e4db, #e9d1c4);
     color: var(--brand);
-    box-shadow: 0 10px 20px rgba(43, 31, 26, 0.08);
-    transition: transform 0.2s ease, background-color 0.2s ease;
+    box-shadow: 0 14px 28px rgba(138, 47, 16, 0.12);
+    font-size: 1.6rem;
+    font-weight: 700;
+    transition: transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .events-btn:hover,
 .events-btn:focus-visible {
-    transform: translateY(-2px);
-    background: #fff7f3;
+    transform: translateY(-2px) scale(1.03);
+    background: linear-gradient(180deg, #f7ece5, #ecd7cb);
+    box-shadow: 0 18px 34px rgba(138, 47, 16, 0.16);
 }
 
 .events-viewport {
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: hidden;
     flex: 1 1 auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+}
+
+.events-viewport::-webkit-scrollbar {
+    display: none;
 }
 
 .events-track {
@@ -374,15 +425,17 @@ button {
     gap: 14px;
     align-items: stretch;
     will-change: transform;
+    width: max-content;
 }
 
 .event-card {
     flex: 0 0 280px;
     padding: 16px;
     border-radius: 20px;
-    background: var(--surface);
-    border: 1px solid var(--border);
+    background: linear-gradient(180deg, #fffdfb 0%, #f8efe8 100%);
+    border: 1px solid rgba(138, 47, 16, 0.08);
     box-shadow: 0 12px 28px rgba(43, 31, 26, 0.06);
+    scroll-snap-align: start;
 }
 
 .event-card img {
@@ -873,6 +926,27 @@ button {
     color: #a52135;
 }
 
+.toast {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    background: rgba(43, 31, 26, 0.96);
+    color: #fff;
+    padding: 12px 16px;
+    border-radius: 999px;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
+    opacity: 0;
+    transform: translateY(10px);
+    pointer-events: none;
+    transition: all 0.25s ease;
+    z-index: 1100;
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
 @keyframes pulse {
     0% {
         box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.7);
@@ -900,6 +974,7 @@ button {
 @media (max-width: 1024px) {
     #liste-produits,
     .announcement-grid,
+    .trend-grid,
     .live-card,
     .social-section,
     .contact-grid {
@@ -929,7 +1004,8 @@ button {
     }
 
     #liste-produits,
-    .announcement-grid {
+    .announcement-grid,
+    .trend-grid {
         grid-template-columns: 1fr;
     }
 

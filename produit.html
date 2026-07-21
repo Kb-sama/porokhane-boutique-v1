@@ -34,14 +34,7 @@
                 <p data-i18n="products_filter_text">Filtrez rapidement les categories et ajoutez directement au panier.</p>
             </div>
 
-            <div class="categories" data-i18n-aria-label="category_filters">
-                <button type="button" onclick="filtrer('Tous')" data-i18n="filter_all">Tous</button>
-                <button type="button" onclick="filtrer('Sac')" data-i18n="filter_bags">Sacs</button>
-                <button type="button" onclick="filtrer('Robe')" data-i18n="filter_dresses">Robes</button>
-                <button type="button" onclick="filtrer('Tissu')" data-i18n="filter_fabrics">Tissus</button>
-                <button type="button" onclick="filtrer('Collier')" data-i18n="filter_necklaces">Colliers</button>
-                <button type="button" onclick="filtrer('Chaussure')" data-i18n="filter_shoes">Chaussures</button>
-            </div>
+            <div class="categories" id="category-filters" data-i18n-aria-label="category_filters"></div>
 
             <section class="announcements" aria-labelledby="catalogue-annonces-title">
                 <div class="section-title">
@@ -49,6 +42,15 @@
                     <h2 id="catalogue-annonces-title" data-i18n="first_to_see">Ce qu il faut voir en premier</h2>
                 </div>
                 <div class="announcement-grid" id="announcement-grid"></div>
+            </section>
+
+            <section class="announcements" aria-labelledby="tissu-tendance-title">
+                <div class="section-title">
+                    <p class="badge">Tendance</p>
+                    <h2 id="tissu-tendance-title">Tissus tendance</h2>
+                    <p>Les tissus les plus mis en avant pour inspirer rapidement les clientes.</p>
+                </div>
+                <div class="trend-grid" id="tissue-trend-container"></div>
             </section>
 
             <section id="liste-produits"></section>

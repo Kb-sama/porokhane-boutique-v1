@@ -25,14 +25,6 @@ function getLocale() {
 
 const t = liveLocales[getLocale()] || liveLocales.fr;
 
-function isTikTokUrl(url) {
-    try {
-        return new URL(url).hostname.includes('tiktok.com');
-    } catch {
-        return false;
-    }
-}
-
 function renderLive(data) {
     if (!container) return;
 
@@ -69,23 +61,114 @@ function renderLive(data) {
     }
 }
 
+function renderEvents(events) {
+    const grid = document.getElementById('announcement-grid');
+    const track = document.getElementById('events-track');
+
+    if (grid) {
+        grid.innerHTML = events.map(event => `
+            <article class="announcement-card">
+                <span class="announcement-tag">${event.accent}</span>
+                <strong>${event.titre}</strong>
+                <p>${event.description}</p>
+                <span class="announcement-meta">${event.date}</span>
+            </article>
+        `).join('');
+    }
+
+    if (track) {
+        track.innerHTML = events.map(event => `
+            <article class="event-card">
+                <img src="img/logo.jpeg" alt="${event.titre}">
+                <span class="announcement-tag">${event.accent}</span>
+                <h3>${event.titre}</h3>
+                <p>${event.description}</p>
+                <span class="announcement-meta">${event.date}</span>
+            </article>
+        `).join('');
+    }
+}
+
+function initEventCarousel() {
+    const viewport = document.getElementById('events-viewport');
+    const track = document.getElementById('events-track');
+    const prev = document.querySelector('.events-btn.prev');
+    const next = document.querySelector('.events-btn.next');
+
+    if (!viewport || !track || !prev || !next) return;
+
+    const originalCards = Array.from(track.children);
+    if (!originalCards.length) return;
+    originalCards.forEach(card => track.appendChild(card.cloneNode(true)));
+
+    let loopWidth = track.scrollWidth / 2;
+    const recompute = () => { loopWidth = track.scrollWidth / 2; };
+    window.addEventListener('resize', recompute);
+    window.addEventListener('load', recompute);
+
+    const PIXELS_PER_MS = 0.05;
+    let x = 0;
+    let isPaused = false;
+    let rafId = null;
+    let lastTime = null;
+    let pauseTimeout = null;
+
+    function stepRAF(timestamp) {
+        if (lastTime === null) lastTime = timestamp;
+        const dt = timestamp - lastTime;
+        lastTime = timestamp;
+
+        if (!isPaused) {
+            x += dt * PIXELS_PER_MS;
+            if (x >= loopWidth) x -= loopWidth;
+            track.style.transform = `translateX(-${x}px)`;
+        }
+
+        rafId = requestAnimationFrame(stepRAF);
+    }
+
+    function start() {
+        if (rafId) cancelAnimationFrame(rafId);
+        lastTime = null;
+        rafId = requestAnimationFrame(stepRAF);
+    }
+
+    function pauseTemporarily() {
+        isPaused = true;
+        if (pauseTimeout) clearTimeout(pauseTimeout);
+        pauseTimeout = setTimeout(() => { isPaused = false; }, 1200);
+    }
+
+    function move(direction) {
+        pauseTemporarily();
+        x += direction * 320;
+        if (x < 0) x += loopWidth;
+        if (x >= loopWidth) x -= loopWidth;
+        track.style.transform = `translateX(-${x}px)`;
+    }
+
+    prev.addEventListener('click', () => move(-1));
+    next.addEventListener('click', () => move(1));
+    viewport.addEventListener('mouseenter', () => { isPaused = true; });
+    viewport.addEventListener('mouseleave', () => { isPaused = false; });
+    viewport.addEventListener('focusin', () => { isPaused = true; });
+    viewport.addEventListener('focusout', () => { isPaused = false; });
+    viewport.addEventListener('keydown', (event) => {
+        if (event.key === 'ArrowLeft') move(-1);
+        if (event.key === 'ArrowRight') move(1);
+    });
+
+    start();
+}
+
 Promise.all([
     fetch('/api/public/live').then(response => response.json()),
     fetch('/api/public/events').then(response => response.json())
 ])
     .then(([liveData, events]) => {
         renderLive(liveData);
-        const grid = document.getElementById('announcement-grid');
-        if (grid) {
-            grid.innerHTML = events.map(event => `
-                <article class="announcement-card">
-                    <span class="announcement-tag">${event.accent}</span>
-                    <strong>${event.titre}</strong>
-                    <p>${event.description}</p>
-                    <span class="announcement-meta">${event.date}</span>
-                </article>
-            `).join('');
-        }
+        renderEvents(events);
+        initEventCarousel();
     })
     .catch((err) => {
         console.error('Erreur live API', err);

@@ -1,5 +1,6 @@
 let tousLesProduits = [];
 let panier = JSON.parse(localStorage.getItem('porokhane-panier') || '[]');
+let siteTextsCache = {};
 const locales = {
     fr: {
         heroBadge: 'Boutique mode et accessoires',
@@ -190,6 +191,19 @@ function getSupportNumber() {
     return '221774137575';
 }
 
+function showToast(message) {
+    let toast = document.querySelector('.toast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.className = 'toast';
+        document.body.appendChild(toast);
+    }
+    toast.textContent = message;
+    toast.classList.add('show');
+    clearTimeout(showToast.timeout);
+    showToast.timeout = setTimeout(() => toast.classList.remove('show'), 2200);
+}
+
 function mettreAJourPanier() {
     localStorage.setItem('porokhane-panier', JSON.stringify(panier));
 
@@ -228,6 +242,7 @@ function ajouterAuPanier(produit) {
         panier.push({ ...produit, quantite: 1 });
     }
     mettreAJourPanier();
+    showToast(`${produit.nom} ajouté au panier`);
 }
 
 function modifierPanier(id, delta) {
@@ -263,11 +278,15 @@ async function chargerDonneesVitrine() {
         ]);
 
         tousLesProduits = produits;
+        siteTextsCache = texts || {};
         afficherProduits(produits);
-        afficherEvenements(events);
+        afficherEvenements(getDisplayEvents(events));
         appliquerTextesSite(texts);
         appliquerContacts(whatsapp);
+        renderCategoryFilters();
+        renderTrendTissues(produits);
         mettreAJourPanier();
+        initEventCarousel();
     } catch (error) {
         const liste = document.getElementById('liste-produits');
         if (liste) {
@@ -296,12 +315,12 @@ function appliquerContacts(whatsapp) {
 
     if (primaryLink && firstWhatsapp) {
         const message = encodeURIComponent(firstWhatsapp.message || 'Bonjour, je souhaite commander.');
-        primaryLink.href = `https://wa.me/${firstWhatsapp.numero || '221771509100'}?text=${message}`;
+        primaryLink.href = `https://wa.me/${firstWhatsapp.numero || '221774137575'}?text=${message}`;
     }
 
     if (phoneLink && firstWhatsapp) {
-        phoneLink.href = `tel:${firstWhatsapp.numero || '+221771509100'}`;
-        phoneLink.textContent = firstWhatsapp.numero || '+221 77 150 91 00';
+        phoneLink.href = `tel:${firstWhatsapp.numero || '+221774137575'}`;
+        phoneLink.textContent = firstWhatsapp.numero || '+221 77 413 75 75';
     }
 
     if (socialLinks) {
@@ -334,7 +353,7 @@ function afficherProduits(produits) {
     }
 
     if (accueilListe) {
-        accueilListe.innerHTML = produits.slice(0, 4).map(produit => `
+        accueilListe.innerHTML = getSuggestedProducts(produits).map(produit => `
             <article class="card">
                 <div class="image-box">
                     <img src="${produit.image}" alt="${produit.nom}">
@@ -347,6 +366,33 @@ function afficherProduits(produits) {
             </article>
         `).join('');
     }
+}
+
+function splitCsv(value) {
+    return String(value || '')
+        .split(',')
+        .map(item => item.trim())
+        .filter(Boolean);
+}
+
+function getCatalogCategories() {
+    const categories = splitCsv(siteTextsCache.catalog_categories);
+    return categories.length ? categories : ['Sac', 'Robe', 'Tissu', 'Collier', 'Chaussure'];
+}
+
+function getFeaturedCategories() {
+    const categories = splitCsv(siteTextsCache.featured_categories);
+    return categories.length ? categories : ['Sac', 'Chaussure', 'Collier'];
+}
+
+function renderCategoryFilters() {
+    const container = document.getElementById('category-filters');
+    if (!container) return;
+    const categories = getCatalogCategories();
+    container.innerHTML = [
+        `<button type="button" onclick="filtrer('Tous')">${locales[getLocale()].filter_all || 'Tous'}</button>`,
+        ...categories.map(category => `<button type="button" onclick="filtrer('${category}')">${category}${category.endsWith('s') ? '' : 's'}</button>`)
+    ].join('');
 }
 
 function afficherEvenements(events) {
@@ -377,6 +423,96 @@ function afficherEvenements(events) {
     }
 }
 
+function getCustomEvents() {
+    const raw = String(siteTextsCache.event_cards || '').trim();
+    if (!raw) return [];
+    try {
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch {
+        return [];
+    }
+}
+
+function defaultEvents() {
+    return [
+        {
+            titre: 'Nouvelle collection',
+            date: 'Chaque semaine',
+            description: 'Des arrivages sélectionnés de sacs, robes et chaussures sont publiés en priorité sur la page d accueil.',
+            accent: 'Collection',
+            image: ''
+        },
+        {
+            titre: 'Annonces live',
+            date: 'Avant chaque direct',
+            description: 'Les prochains lives sont mis en avant pour permettre aux clients de se préparer et poser leurs questions.',
+            accent: 'Live',
+            image: ''
+        },
+        {
+            titre: 'Offres WhatsApp',
+            date: 'Disponible maintenant',
+            description: 'Les promotions et la disponibilité des produits sont partagées en un clic vers WhatsApp.',
+            accent: 'Promo',
+            image: ''
+        },
+        {
+            titre: 'Commandes rapides',
+            date: '24h/24',
+            description: 'Le panier et le paiement Wave sont optimisés pour finaliser une commande sans friction.',
+            accent: 'Commande',
+            image: ''
+        }
+    ];
+}
+
+function getDisplayEvents(fallbackEvents) {
+    const custom = getCustomEvents();
+    return custom.length ? custom : (fallbackEvents && fallbackEvents.length ? fallbackEvents : defaultEvents());
+}
+
+function rendreBlocLive(liveData) {
+    const liveTitle = document.getElementById('live-title');
+    const liveText = document.querySelector('.live-section [data-i18n="live_text"]');
+    const liveCard = document.querySelector('.live-section .live-card');
+    const liveVideo = document.querySelector('.live-section .live-video');
+    const liveActions = document.querySelector('.live-section .live-actions');
+
+    if (!liveCard || !liveVideo || !liveActions) return;
+
+    const isLive = liveData && (liveData.statut === 'on' || liveData.statut === 'online');
+    const liveLabel = isLive ? 'En direct maintenant' : 'Aucun live en cours';
+    const liveDescription = isLive
+        ? (liveData.message || 'Le direct est en cours. Cliquez pour le suivre sur TikTok.')
+        : (liveData.message || 'Revenez plus tard ou suivez-nous pour être averti du prochain direct.');
+
+    if (liveTitle) liveTitle.textContent = liveLabel;
+    if (liveText) liveText.textContent = liveDescription;
+
+    liveVideo.innerHTML = isLive
+        ? `
+            <span class="badge-live">EN DIRECT</span>
+            <iframe
+                src="${liveData.lien}"
+                title="Live Porokhane Sagnse VIP"
+                allowfullscreen>
+            </iframe>
+            <a class="btn btn-secondary" href="${liveData.lien}" target="_blank" rel="noopener noreferrer">Ouvrir le live TikTok</a>
+          `
+        : `
+            <span class="live-dot"></span>
+            <h3 data-i18n="live_offline_title">Le direct n a pas encore commence</h3>
+            <p data-i18n="live_offline_text">Quand le live sera actif, la video apparaitra ici.</p>
+          `;
+
+    liveActions.innerHTML = `
+        <h3 data-i18n="stay_informed">Rester informe</h3>
+        <a class="btn" href="https://www.tiktok.com/@prokhanesagnsevip?is_from_webapp=1&sender_device=pc" target="_blank" rel="noopener noreferrer" data-i18n="follow_tiktok">Suivre sur TikTok</a>
+        <a class="btn btn-secondary" href="https://wa.me/221774137575?text=Je%20souhaite%20etre%20informe%20du%20prochain%20live" target="_blank" rel="noopener noreferrer" data-i18n="notify_whatsapp">Etre averti sur WhatsApp</a>
+    `;
+}
+
 function filtrer(categorie) {
     if (categorie === 'Tous') {
         afficherProduits(tousLesProduits);
@@ -384,6 +520,30 @@ function filtrer(categorie) {
     }
 
     afficherProduits(tousLesProduits.filter(produit => produit.categorie === categorie));
+}
+
+function getSuggestedProducts(products) {
+    const featured = getFeaturedCategories().map(item => item.toLowerCase());
+    const matched = products.filter(product => featured.includes(String(product.categorie || '').toLowerCase()));
+    const fallback = products.filter(product => !matched.includes(product));
+    return [...matched, ...fallback].slice(0, 4);
+}
+
+function renderTrendTissues(products) {
+    const container = document.getElementById('tissue-trend-container');
+    if (!container) return;
+    const tissues = products.filter(product => String(product.product_type || '').toLowerCase() === 'tissue').slice(0, 4);
+    container.innerHTML = tissues.length ? tissues.map(product => `
+        <article class="trend-card">
+            <img src="${product.image}" alt="${product.nom}">
+            <div class="trend-card-body">
+                <span class="announcement-tag">Tissu tendance</span>
+                <h3>${product.nom}</h3>
+                <p>${product.description || ''}</p>
+                <strong>${product.prix} FCFA</strong>
+            </div>
+        </article>
+    `).join('') : '<p class="message-erreur">Aucun tissu tendance disponible pour le moment.</p>';
 }
 
 async function chargerInstructionsPaiement() {
@@ -394,12 +554,21 @@ async function chargerInstructionsPaiement() {
         const data = await chargerJson('/api/public/payment-instructions');
         info.innerHTML = `
             <strong>Payez via Wave</strong>
-            <p>Numero : ${data.waveNumber || '+221771509100'}</p>
-            <p>Beneficiaire : ${data.beneficiaire || 'Porokhane Sagnse VIP'}</p>
+            <p>Numeros : ${data.waveNumber || '+221774137575'} ${data.secondaryNumber ? ` / ${data.secondaryNumber}` : ''}</p>
+            <p>Beneficiaire : ${data.beneficiaire || 'Diary Diop'}</p>
             <p>${data.instructions || 'Prenez une capture d ecran de confirmation Wave puis televersez-la.'}</p>
         `;
     } catch (error) {
         info.innerHTML = '<p>Impossible de charger les instructions Wave.</p>';
+    }
+}
+
+async function chargerLiveAccueil() {
+    try {
+        const liveData = await chargerJson('/api/public/live');
+        rendreBlocLive(liveData || {});
+    } catch (error) {
+        rendreBlocLive({});
     }
 }
 
@@ -481,7 +650,7 @@ function initEventCarousel() {
     window.addEventListener('resize', recompute);
     window.addEventListener('load', recompute);
 
-    const PIXELS_PER_MS = 0.05;
+    const PIXELS_PER_MS = 0.025;
     let x = 0;
     let isPaused = false;
     let rafId = null;
@@ -558,7 +727,7 @@ function initEventCarousel() {
 document.addEventListener('DOMContentLoaded', () => {
     chargerDonneesVitrine();
     chargerInstructionsPaiement();
-    initEventCarousel();
+    chargerLiveAccueil();
     applyLocale();
 
     document.addEventListener('click', (event) => {

@@ -25,24 +25,47 @@ function getLocale() {
 
 const t = liveLocales[getLocale()] || liveLocales.fr;
 
+function isTikTokUrl(url) {
+    try {
+        return new URL(url).hostname.includes('tiktok.com');
+    } catch {
+        return false;
+    }
+}
+
+function buildLiveButtons(liveUrl) {
+    return `
+        <div class="live-actions">
+            <a href="${liveUrl}" target="_blank" rel="noreferrer" class="btn-live">
+                ${t.watchLive}
+            </a>
+            <a href="https://www.tiktok.com/@prokhanesagnsevip" target="_blank" rel="noreferrer" class="btn-live btn-live-secondary">
+                ${t.tiktokVideos}
+            </a>
+        </div>
+    `;
+}
+
 function renderLive(data) {
     if (!container) return;
 
     if (data.statut === 'on' || data.statut === 'online') {
-        container.innerHTML = `
-            <div class="live-online">
-                <span class="badge-live">${t.liveActive}</span>
+        const liveUrl = data.lien || 'https://www.tiktok.com';
+        const liveContent = isTikTokUrl(liveUrl)
+            ? buildLiveButtons(liveUrl)
+            : `
                 <iframe
-                    src="${data.lien}"
+                    src="${liveUrl}"
                     title="Live Porokhane Sagnse VIP"
                     allowfullscreen>
                 </iframe>
-                <a href="${data.lien}"
-                   target="_blank"
-                   rel="noreferrer"
-                   class="btn-live">
-                    ${t.watchLive}
-                </a>
+                ${buildLiveButtons(liveUrl)}
+              `;
+
+        container.innerHTML = `
+            <div class="live-online">
+                <span class="badge-live">${t.liveActive}</span>
+                ${liveContent}
             </div>
         `;
     } else {

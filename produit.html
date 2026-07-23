@@ -72,6 +72,34 @@
                 <p data-i18n="loading_wave">Chargement des informations de paiement Wave...</p>
             </div>
 
+            <section class="section-block" id="payment-wave">
+                <div class="section-title">
+                    <p class="badge">Paiement</p>
+                    <h2>Wave ou Orange Money</h2>
+                    <p>Choisissez d abord le mode de paiement, puis le site affiche les deux numéros disponibles pour ce mode.</p>
+                </div>
+                <div class="contact-grid">
+                    <article class="contact-card contact-primary">
+                        <span class="contact-label">Numéros de paiement</span>
+                        <h2>Wave : +221771509100</h2>
+                        <h2>Orange Money : +221774137575</h2>
+                        <p>Wave et Orange Money utilisent les deux numéros ci-dessous.</p>
+                        <div class="payment-actions">
+                            <button type="button" class="btn" data-payment-mode="wave">Choisir Wave</button>
+                            <button type="button" class="btn btn-secondary" data-payment-mode="orange">Choisir Orange Money</button>
+                        </div>
+                        <div id="payment-number-choice" class="payment-number-choice" hidden>
+                            <p id="payment-number-question"></p>
+                            <p id="payment-number-note"></p>
+                            <div class="payment-actions">
+                                <a class="btn btn-secondary" id="payment-number-wave" href="tel:+221771509100">Payer avec au 771509100</a>
+                                <a class="btn btn-secondary" id="payment-number-orange" href="tel:+221774137575">Payer avec au 774137575</a>
+                            </div>
+                        </div>
+                    </article>
+                </div>
+            </section>
+
             <form id="order-form" class="order-form">
                 <div class="order-grid">
                     <label data-i18n="full_name">
@@ -98,7 +126,7 @@
                 </label>
 
                 <label data-i18n="wave_proof_required">
-                    Capture d ecran du paiement Wave (obligatoire)
+                    Capture d ecran du paiement Wave ou Orange Money (obligatoire)
                     <input type="file" name="waveProof" accept="image/png,image/jpeg,image/webp" required>
                 </label>
 

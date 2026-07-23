@@ -254,8 +254,167 @@ button:hover {
     transform: translateY(-1px);
 }
 
+.edit-product {
+    background: #6f5b53;
+    margin-right: 8px;
+}
+
+.edit-product:hover {
+    background: #5a4942;
+}
+
+.price-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.price-current {
+    font-weight: 700;
+    color: #2b1f1a;
+}
+
+.price-previous {
+    color: #8d7367;
+    text-decoration: line-through;
+    font-size: 0.9rem;
+}
+
+.price-change {
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.price-change.decrease {
+    color: #1f7a4d;
+}
+
+.price-change.increase {
+    color: #b13a1a;
+}
+
 #site-texts-input {
-    min-height: 220px;
+    display: none;
+}
+
+.compact-admin-form {
+    margin-bottom: 18px;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.chips-preview {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 10px 0 14px;
+}
+
+.chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: #f5e9e2;
+    color: #5d443a;
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.chip-empty {
+    background: #f1ece8;
+    color: #8d7367;
+}
+
+.category-toolbar {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.category-list {
+    display: grid;
+    gap: 12px;
+}
+
+.category-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.category-table th,
+.category-table td {
+    padding: 14px 12px;
+    border-bottom: 1px solid #eaddd2;
+    text-align: left;
+    vertical-align: top;
+}
+
+.category-table th {
+    color: #6f5b53;
+    font-weight: 700;
+}
+
+.category-meta {
+    margin-top: 4px;
+    font-size: 0.9rem;
+    color: #6f5b53;
+}
+
+.category-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: center;
+    padding: 14px 16px;
+    border: 1px solid #e4d7cf;
+    border-radius: 16px;
+    background: #fff;
+}
+
+.category-row p {
+    margin-top: 4px;
+    color: #6f5b53;
+}
+
+.category-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.catalog-table-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    margin: 14px 0 18px;
+}
+
+.catalog-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.catalog-table th,
+.catalog-table td {
+    padding: 14px 12px;
+    border-bottom: 1px solid #eaddd2;
+    text-align: left;
+    vertical-align: top;
+}
+
+.catalog-table th {
+    color: #6f5b53;
+    font-weight: 700;
+}
+
+.catalog-table input {
+    width: 100%;
+    margin-top: 0;
 }
 
 .cleanup-panel {

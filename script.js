@@ -79,7 +79,7 @@ Object.assign(locales.fr, {
     order_success_followup: 'Nous vous contacterons rapidement au numero indique.',
     order_success_commercial: 'Votre commande est bien enregistree. Nous vous appelons rapidement pour confirmer les details et finaliser votre achat.',
     order_missing_panier: 'Votre panier est vide.',
-    order_missing_wave: 'Televersez une preuve de paiement Wave.',
+    order_missing_wave: 'Televersez une preuve de paiement.',
     order_submit_error: 'Erreur lors de l envoi de la commande.',
     support_label: 'Besoin d aide rapide ?',
     support_text: 'Ecrivez-nous sur WhatsApp pour confirmer une taille, un stock ou un delai.',
@@ -126,7 +126,7 @@ Object.assign(locales.wo, {
     order_success_followup: 'Dinañu la woow ci numero bi nga joxe.',
     order_success_commercial: 'Sa commande bi denc naa. Dinañu la woow gaaw ngir valider details yi te soppi jëfandikoo bi.',
     order_missing_panier: 'Sa panier bi dafa féex.',
-    order_missing_wave: 'Joxe preuve bi ci paiement Wave.',
+    order_missing_wave: 'Joxe preuve bi ci paiement.',
     order_submit_error: 'Am na njuumte ci yónnee commande bi.',
     support_label: 'Am na laaj bu gaaw ?',
     support_text: 'Bind nu ci WhatsApp ngir wone size, stock walla waxtu delivery.',
@@ -276,9 +276,11 @@ async function chargerDonneesVitrine() {
             chargerJson('/api/public/whatsapp'),
             chargerJson('/api/public/events')
         ]);
+        const categories = await chargerJson('/api/public/categories').catch(() => []);
 
         tousLesProduits = produits;
         siteTextsCache = texts || {};
+        siteTextsCache.categories = Array.isArray(categories) ? categories : [];
         afficherProduits(produits);
         afficherEvenements(getDisplayEvents(events));
         appliquerTextesSite(texts);
@@ -332,6 +334,26 @@ function appliquerContacts(whatsapp) {
     }
 }
 
+function renderPriceBlock(product) {
+    const current = Number(product.prix || 0);
+    const previous = Number(product.prix_avant || 0);
+    const priceChange = product.priceChange || null;
+    const previousPrice = Number(priceChange?.oldPrice || previous || 0);
+    const diff = Number(priceChange?.changePercent || 0);
+    if (Number.isFinite(previousPrice) && previousPrice > 0 && previousPrice !== current) {
+        const label = priceChange?.changeType === 'increase' ? `+${diff}%` : `-${diff}%`;
+        return `
+            <div class="price-stack">
+                <strong class="price-current">${current} FCFA</strong>
+                <span class="price-previous">${previousPrice} FCFA</span>
+                <small class="price-change ${priceChange?.changeType === 'increase' ? 'increase' : 'decrease'}">${label}</small>
+            </div>
+        `;
+    }
+
+    return `<strong class="price-current">${current} FCFA</strong>`;
+}
+
 function afficherProduits(produits) {
     const liste = document.getElementById('liste-produits');
     const accueilListe = document.getElementById('produit-container');
@@ -344,7 +366,7 @@ function afficherProduits(produits) {
                 </div>
                 <div class="card-content">
                     <h3>${produit.nom}</h3>
-                    <p>${produit.prix} FCFA</p>
+                    ${renderPriceBlock(produit)}
                     <p>${produit.description || ''}</p>
                     <button class="btn add-to-cart" type="button" data-product-id="${produit.id}">Ajouter au panier</button>
                 </div>
@@ -360,7 +382,7 @@ function afficherProduits(produits) {
                 </div>
                 <div class="card-content">
                     <h3>${produit.nom}</h3>
-                    <p>${produit.prix} FCFA</p>
+                    ${renderPriceBlock(produit)}
                     <button class="btn add-to-cart" type="button" data-product-id="${produit.id}">Ajouter au panier</button>
                 </div>
             </article>
@@ -376,13 +398,21 @@ function splitCsv(value) {
 }
 
 function getCatalogCategories() {
-    const categories = splitCsv(siteTextsCache.catalog_categories);
-    return categories.length ? categories : ['Sac', 'Robe', 'Tissu', 'Collier', 'Chaussure'];
+    const categories = Array.isArray(siteTextsCache.categories) ? siteTextsCache.categories : [];
+    if (categories.length) {
+        return categories.filter(category => !category.parent_id);
+    }
+    const legacy = splitCsv(siteTextsCache.catalog_categories);
+    return legacy.length ? legacy.map(name => ({ name })) : [{ name: 'Sac' }, { name: 'Robe' }, { name: 'Tissu' }, { name: 'Collier' }, { name: 'Chaussure' }];
 }
 
 function getFeaturedCategories() {
-    const categories = splitCsv(siteTextsCache.featured_categories);
-    return categories.length ? categories : ['Sac', 'Chaussure', 'Collier'];
+    const categories = Array.isArray(siteTextsCache.categories) ? siteTextsCache.categories : [];
+    if (categories.length) {
+        return categories.filter(category => !category.parent_id).slice(0, 3);
+    }
+    const legacy = splitCsv(siteTextsCache.featured_categories);
+    return legacy.length ? legacy.map(name => ({ name })) : [{ name: 'Sac' }, { name: 'Chaussure' }, { name: 'Collier' }];
 }
 
 function renderCategoryFilters() {
@@ -391,7 +421,7 @@ function renderCategoryFilters() {
     const categories = getCatalogCategories();
     container.innerHTML = [
         `<button type="button" onclick="filtrer('Tous')">${locales[getLocale()].filter_all || 'Tous'}</button>`,
-        ...categories.map(category => `<button type="button" onclick="filtrer('${category}')">${category}${category.endsWith('s') ? '' : 's'}</button>`)
+        ...categories.map(category => `<button type="button" onclick="filtrer('${category.name}')">${category.name}${String(category.name).endsWith('s') ? '' : 's'}</button>`)
     ].join('');
 }
 
@@ -460,7 +490,7 @@ function defaultEvents() {
         {
             titre: 'Commandes rapides',
             date: '24h/24',
-            description: 'Le panier et le paiement Wave sont optimisés pour finaliser une commande sans friction.',
+            description: 'Le panier et les options de paiement sont optimisés pour finaliser une commande sans friction.',
             accent: 'Commande',
             image: ''
         }
@@ -523,7 +553,7 @@ function filtrer(categorie) {
 }
 
 function getSuggestedProducts(products) {
-    const featured = getFeaturedCategories().map(item => item.toLowerCase());
+    const featured = getFeaturedCategories().map(item => String(item.name || '').toLowerCase());
     const matched = products.filter(product => featured.includes(String(product.categorie || '').toLowerCase()));
     const fallback = products.filter(product => !matched.includes(product));
     return [...matched, ...fallback].slice(0, 4);
@@ -540,7 +570,7 @@ function renderTrendTissues(products) {
                 <span class="announcement-tag">Tissu tendance</span>
                 <h3>${product.nom}</h3>
                 <p>${product.description || ''}</p>
-                <strong>${product.prix} FCFA</strong>
+                ${renderPriceBlock(product)}
             </div>
         </article>
     `).join('') : '<p class="message-erreur">Aucun tissu tendance disponible pour le moment.</p>';
@@ -553,13 +583,19 @@ async function chargerInstructionsPaiement() {
     try {
         const data = await chargerJson('/api/public/payment-instructions');
         info.innerHTML = `
-            <strong>Payez via Wave</strong>
-            <p>Numeros : ${data.waveNumber || '+221774137575'} ${data.secondaryNumber ? ` / ${data.secondaryNumber}` : ''}</p>
+            <strong>Payez via Wave ou Orange Money</strong>
+            <p>Choisissez le service de paiement, puis utilisez le numéro correspondant affiché ci-dessous.</p>
+            <p>Wave : ${data.waveNumber || '+221771509100'} / ${data.orangeMoneyNumber || '+221774137575'}</p>
+            <p>Orange Money : ${data.waveNumber || '+221771509100'} / ${data.orangeMoneyNumber || '+221774137575'}</p>
             <p>Beneficiaire : ${data.beneficiaire || 'Diary Diop'}</p>
-            <p>${data.instructions || 'Prenez une capture d ecran de confirmation Wave puis televersez-la.'}</p>
+            <p>${data.instructions || 'Prenez une capture d ecran de confirmation puis televersez-la.'}</p>
+            <div class="payment-actions">
+                <a class="btn btn-secondary" href="tel:${data.waveNumber || '+221771509100'}">Payer avec au 771509100</a>
+                <a class="btn btn-secondary" href="tel:${data.orangeMoneyNumber || '+221774137575'}">Payer avec au 774137575</a>
+            </div>
         `;
     } catch (error) {
-        info.innerHTML = '<p>Impossible de charger les instructions Wave.</p>';
+        info.innerHTML = '<p>Impossible de charger les instructions de paiement.</p>';
     }
 }
 
@@ -570,6 +606,34 @@ async function chargerLiveAccueil() {
     } catch (error) {
         rendreBlocLive({});
     }
+}
+
+function setupPaymentChoice() {
+    const modeButtons = document.querySelectorAll('[data-payment-mode]');
+    const choice = document.getElementById('payment-number-choice');
+    const question = document.getElementById('payment-number-question');
+    const note = document.getElementById('payment-number-note');
+    const waveLink = document.getElementById('payment-number-wave');
+    const orangeLink = document.getElementById('payment-number-orange');
+    if (!modeButtons.length || !choice || !question || !note || !waveLink || !orangeLink) return;
+
+    const openChoice = (mode) => {
+        choice.hidden = false;
+        if (mode === 'wave') {
+            question.textContent = 'Mode choisi : Wave';
+            note.textContent = 'Wave peut utiliser les deux numéros ci-dessous.';
+        } else {
+            question.textContent = 'Mode choisi : Orange Money';
+            note.textContent = 'Orange Money peut utiliser les deux numéros ci-dessous.';
+        }
+        waveLink.textContent = 'Payer au 771509100';
+        orangeLink.textContent = 'Payer au 774137575';
+        choice.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    };
+
+    modeButtons.forEach((button) => {
+        button.addEventListener('click', () => openChoice(button.dataset.paymentMode));
+    });
 }
 
 async function envoyerCommande(event) {
@@ -729,6 +793,7 @@ document.addEventListener('DOMContentLoaded', () => {
     chargerInstructionsPaiement();
     chargerLiveAccueil();
     applyLocale();
+    setupPaymentChoice();
 
     document.addEventListener('click', (event) => {
         const target = event.target;

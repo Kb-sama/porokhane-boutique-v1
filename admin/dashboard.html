@@ -43,8 +43,9 @@
 
             <div id="product-modal" class="modal hidden" aria-hidden="true">
                 <div class="modal-content">
-                    <h3>Ajouter un produit</h3>
+                    <h3 id="product-modal-title">Ajouter un produit</h3>
                     <form id="product-form">
+                        <input type="hidden" name="productId" id="product-id">
                         <label>Nom
                             <input name="nom" type="text" required>
                         </label>
@@ -150,8 +151,22 @@
             </section>
             <section id="site-texts" class="admin-section">
                 <h2>Textes du site</h2>
+                <div class="form-grid compact-admin-form">
+                    <label>Titre hero
+                        <input id="site-text-hero-title" type="text" placeholder="Bienvenue chez Porokhane">
+                    </label>
+                    <label>Sous-titre hero
+                        <textarea id="site-text-hero-subtitle" rows="3" placeholder="D&eacute;couvrez notre collection"></textarea>
+                    </label>
+                    <label>Texte du bouton
+                        <input id="site-text-button" type="text" placeholder="Commander maintenant">
+                    </label>
+                    <label>Badge hero
+                        <input id="site-text-hero-badge" type="text" placeholder="Boutique mode et accessoires">
+                    </label>
+                </div>
+                <button id="save-site-texts" type="button">Enregistrer les textes</button>
                 <textarea id="site-texts-input" rows="8"></textarea>
-                <button id="save-site-texts">Enregistrer</button>
             </section>
             <section id="catalog-config" class="admin-section">
                 <h2>Catégories du catalogue</h2>

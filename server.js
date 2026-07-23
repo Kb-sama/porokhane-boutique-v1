@@ -20,6 +20,7 @@ const sessionSecret = process.env.SESSION_SECRET || 'porokhane-secret';
 const defaultAdminEmail = process.env.ADMIN_EMAIL || 'mame79915@gmail.com';
 const defaultAdminPassword = process.env.ADMIN_PASSWORD || 'V7!qR2#nL9@xP4$kZ8&mT6';
 const waveNumber = process.env.WAVE_NUMBER || '+221771509100';
+const orangeMoneyNumber = process.env.ORANGE_MONEY_NUMBER || '+221774137575';
 const contactWhatsApp = process.env.CONTACT_WHATSAPP || '+221774137575';
 const tiktokUrl = process.env.TIKTOK_URL || 'https://www.tiktok.com/@prokhanesagnsevip?is_from_webapp=1&sender_device=pc';
 const instagramUrl = process.env.INSTAGRAM_URL || 'https://www.instagram.com/porokhane_sagnese_vip?igsh=dDR5eWNicXBvd3di';
@@ -178,6 +179,25 @@ function validateProductPayload(payload) {
   };
 }
 
+function computePriceChange(currentPrice, previousPrice) {
+  const current = Number(currentPrice);
+  const previous = Number(previousPrice);
+  if (!Number.isFinite(current) || !Number.isFinite(previous) || previous <= 0 || current === previous) {
+    return null;
+  }
+
+  return {
+    oldPrice: Math.round(previous),
+    currentPrice: Math.round(current),
+    changePercent: Math.round((Math.abs(current - previous) / previous) * 100),
+    changeType: current < previous ? 'decrease' : 'increase'
+  };
+}
+
+function normalizeCategoryName(value) {
+  return String(value || '').trim();
+}
+
 db.serialize(() => {
   db.run(`CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -192,6 +212,7 @@ db.serialize(() => {
     categorie TEXT,
     product_type TEXT DEFAULT 'autre',
     prix INTEGER,
+    prix_avant INTEGER,
     stock INTEGER,
     promotion INTEGER DEFAULT 0,
     image TEXT,
@@ -219,6 +240,15 @@ db.serialize(() => {
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     key TEXT UNIQUE,
     value TEXT
+  )`);
+  db.run(`CREATE TABLE IF NOT EXISTS categories (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    parent_id INTEGER DEFAULT NULL,
+    image TEXT DEFAULT '',
+    description TEXT DEFAULT '',
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(parent_id) REFERENCES categories(id) ON DELETE CASCADE
   )`);
   db.run(`CREATE TABLE IF NOT EXISTS whatsapp_links (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -288,6 +318,7 @@ db.serialize(() => {
   db.run(`INSERT OR IGNORE INTO whatsapp_links (label, numero, message) VALUES
     ('Service Client', '${contactWhatsApp}', 'Bonjour je souhaite commander.')`);
   db.run(`ALTER TABLE products ADD COLUMN product_type TEXT DEFAULT 'autre'`, () => {});
+  db.run(`ALTER TABLE products ADD COLUMN prix_avant INTEGER`, () => {});
 });
 
 function requireLogin(req, res, next) {
@@ -357,9 +388,9 @@ app.post('/api/products', requireLogin, (req, res) => {
   if (!validation.valid) return res.status(400).json({ error: validation.errors.join(', ') });
 
   const { nom, description, categorie, productType, prix, stock, promotion, image, disponible } = validation.cleaned;
-  db.run(`INSERT INTO products (nom, description, categorie, product_type, prix, stock, promotion, image, disponible)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-  [nom, description, categorie, productType, prix, stock, promotion, image, disponible], function(err) {
+  db.run(`INSERT INTO products (nom, description, categorie, product_type, prix, prix_avant, stock, promotion, image, disponible)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  [nom, description, categorie, productType, prix, null, stock, promotion, image, disponible], function(err) {
     if (err) return res.status(500).json({ error: err.message });
     res.json({ id: this.lastID });
   });
@@ -371,10 +402,18 @@ app.put('/api/products/:id', requireLogin, (req, res) => {
 
   const { id } = req.params;
   const { nom, description, categorie, productType, prix, stock, promotion, image, disponible } = validation.cleaned;
-  db.run(`UPDATE products SET nom = ?, description = ?, categorie = ?, product_type = ?, prix = ?, stock = ?, promotion = ?, image = ?, disponible = ? WHERE id = ?`,
-    [nom, description, categorie, productType, prix, stock, promotion, image, disponible, id], function(err) {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json({ updated: this.changes });
+  db.get('SELECT prix FROM products WHERE id = ?', [id], (selectErr, existing) => {
+    if (selectErr) return res.status(500).json({ error: selectErr.message });
+    if (!existing) return res.status(404).json({ error: 'Produit introuvable' });
+
+    const priceChange = computePriceChange(prix, existing.prix);
+    const previousPrice = priceChange ? existing.prix : null;
+
+    db.run(`UPDATE products SET nom = ?, description = ?, categorie = ?, product_type = ?, prix = ?, prix_avant = ?, stock = ?, promotion = ?, image = ?, disponible = ? WHERE id = ?`,
+      [nom, description, categorie, productType, prix, previousPrice, stock, promotion, image, disponible, id], function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ updated: this.changes, priceChange });
+      });
     });
 });
 
@@ -420,9 +459,12 @@ app.post('/api/live-status', requireLogin, (req, res) => {
 });
 
 app.get('/api/public/products', (req, res) => {
-  db.all('SELECT id, nom, categorie, prix, image, stock, disponible, description FROM products WHERE disponible = 1', [], (err, rows) => {
+  db.all('SELECT id, nom, categorie, prix, prix_avant, image, stock, disponible, description FROM products WHERE disponible = 1', [], (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
-    res.json(rows);
+    res.json(rows.map((product) => ({
+      ...product,
+      priceChange: computePriceChange(product.prix, product.prix_avant)
+    })));
   });
 });
 
@@ -537,7 +579,7 @@ app.get('/api/public/events', (req, res) => {
     {
       titre: 'Commandes rapides',
       date: '24h/24',
-      description: 'Le panier et le paiement Wave sont optimisés pour finaliser une commande sans friction.',
+      description: 'Le panier et les options de paiement sont optimisés pour finaliser une commande sans friction.',
       accent: 'Commande'
     }
   ]);
@@ -546,10 +588,71 @@ app.get('/api/public/events', (req, res) => {
 app.get('/api/public/payment-instructions', (req, res) => {
   res.json({
     waveNumber,
-    secondaryNumber: '221771509100',
+    orangeMoneyNumber,
     beneficiaire: 'Diary Diop',
     whatsappNumber: '221774137575',
-    instructions: 'Payez via Wave, prenez une capture d écran de confirmation, puis téléversez-la dans le formulaire de commande.'
+    instructions: 'Wave et Orange Money acceptent les deux numéros. Prenez une capture d écran de confirmation, puis téléversez-la dans le formulaire de commande.'
+  });
+});
+
+app.get('/api/categories', requireLogin, (req, res) => {
+  db.all('SELECT * FROM categories ORDER BY COALESCE(parent_id, id), parent_id IS NOT NULL, name ASC', [], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    db.all('SELECT categorie, COUNT(*) AS count FROM products WHERE categorie IS NOT NULL AND categorie != "" GROUP BY categorie', [], (countErr, counts) => {
+      if (countErr) return res.status(500).json({ error: countErr.message });
+      const countMap = counts.reduce((acc, row) => {
+        acc[String(row.categorie).toLowerCase()] = row.count;
+        return acc;
+      }, {});
+      res.json(rows.map((category) => ({
+        ...category,
+        productCount: countMap[String(category.name).toLowerCase()] || 0
+      })));
+    });
+  });
+});
+
+app.get('/api/public/categories', (req, res) => {
+  db.all('SELECT * FROM categories ORDER BY COALESCE(parent_id, id), parent_id IS NOT NULL, name ASC', [], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(rows);
+  });
+});
+
+app.post('/api/categories', requireLogin, (req, res) => {
+  const name = normalizeCategoryName(req.body.name);
+  const parentId = req.body.parentId === '' || req.body.parentId === null || req.body.parentId === undefined ? null : Number(req.body.parentId);
+  const image = String(req.body.image || '').trim();
+  const description = String(req.body.description || '').trim();
+  if (!name) return res.status(400).json({ error: 'Le nom de la catégorie est requis' });
+  if (parentId !== null && (!Number.isInteger(parentId) || parentId <= 0)) return res.status(400).json({ error: 'Catégorie parent invalide' });
+
+  db.run('INSERT INTO categories (name, parent_id, image, description) VALUES (?, ?, ?, ?)', [name, parentId, image, description], function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ id: this.lastID });
+  });
+});
+
+app.put('/api/categories/:id', requireLogin, (req, res) => {
+  const id = Number(req.params.id);
+  const name = normalizeCategoryName(req.body.name);
+  const parentId = req.body.parentId === '' || req.body.parentId === null || req.body.parentId === undefined ? null : Number(req.body.parentId);
+  const image = String(req.body.image || '').trim();
+  const description = String(req.body.description || '').trim();
+  if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'Catégorie invalide' });
+  if (!name) return res.status(400).json({ error: 'Le nom de la catégorie est requis' });
+  if (parentId !== null && (!Number.isInteger(parentId) || parentId <= 0 || parentId === id)) return res.status(400).json({ error: 'Catégorie parent invalide' });
+
+  db.run('UPDATE categories SET name = ?, parent_id = ?, image = ?, description = ? WHERE id = ?', [name, parentId, image, description, id], function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ updated: this.changes });
+  });
+});
+
+app.delete('/api/categories/:id', requireLogin, (req, res) => {
+  db.run('DELETE FROM categories WHERE id = ?', [req.params.id], function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ deleted: this.changes });
   });
 });
 
@@ -564,7 +667,7 @@ app.post('/api/orders', (req, res) => {
     : [];
 
   if (!clientNom || !telephone || !adresse || !ville || !waveProof || typeof waveProof !== 'string' || !waveProof.startsWith('data:image/')) {
-    return res.status(400).json({ error: 'Informations incomplètes. Vérifiez le formulaire et la preuve de paiement Wave.' });
+    return res.status(400).json({ error: 'Informations incomplètes. Vérifiez le formulaire et la preuve de paiement.' });
   }
 
   if (normalizedItems.length === 0) {
@@ -576,7 +679,7 @@ app.post('/api/orders', (req, res) => {
   const proofPath = saveOrderProof(waveProof, numeroCommande);
 
   if (!proofPath) {
-    return res.status(400).json({ error: 'La preuve Wave doit être une image valide.' });
+    return res.status(400).json({ error: 'La preuve de paiement doit être une image valide.' });
   }
 
   db.run(`INSERT INTO orders (numero_commande, client_nom, telephone, adresse, ville, commentaire, statut, montant_total, wave_numero, preuve_paiement)

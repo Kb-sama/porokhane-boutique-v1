@@ -545,6 +545,37 @@ button {
     gap: 18px;
 }
 
+.price-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin: 6px 0 10px;
+}
+
+.price-current {
+    font-weight: 700;
+    color: var(--text);
+}
+
+.price-previous {
+    color: var(--muted);
+    text-decoration: line-through;
+    font-size: 0.95rem;
+}
+
+.price-change {
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.price-change.decrease {
+    color: #1f7a4d;
+}
+
+.price-change.increase {
+    color: #b13a1a;
+}
+
 .cart-section {
     padding: 28px;
 }

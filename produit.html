@@ -106,6 +106,14 @@
                         Nom complet
                         <input type="text" name="clientNom" required>
                     </label>
+                    <label>
+                        Mode de paiement
+                        <select name="paymentMode" required>
+                            <option value="">Choisir un mode</option>
+                            <option value="wave">Wave</option>
+                            <option value="orange">Orange Money</option>
+                        </select>
+                    </label>
                     <label data-i18n="phone">
                         Telephone
                         <input type="tel" name="telephone" inputmode="numeric" maxlength="15" pattern="[0-9 +()-]{8,15}" required>

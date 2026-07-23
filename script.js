@@ -641,6 +641,7 @@ async function envoyerCommande(event) {
     const form = event.currentTarget;
     const fileInput = form.querySelector('input[name="waveProof"]');
     const phoneInput = form.querySelector('input[name="telephone"]');
+    const paymentModeInput = form.querySelector('select[name="paymentMode"]');
     const orderMessage = document.getElementById('order-message');
 
     if (!panier.length) {
@@ -659,10 +660,18 @@ async function envoyerCommande(event) {
 
     const rawPhone = String(phoneInput?.value || '').trim();
     const digitsOnly = rawPhone.replace(/\D/g, '');
+    const paymentMode = String(paymentModeInput?.value || '').trim();
     if (digitsOnly.length < 8 || digitsOnly.length > 15) {
         orderMessage.dataset.hasUserMessage = '1';
         orderMessage.dataset.state = 'error';
         orderMessage.textContent = 'Le numero client doit contenir entre 8 et 15 chiffres.';
+        return;
+    }
+
+    if (!paymentMode) {
+        orderMessage.dataset.hasUserMessage = '1';
+        orderMessage.dataset.state = 'error';
+        orderMessage.textContent = 'Choisissez un mode de paiement.';
         return;
     }
 
@@ -672,6 +681,7 @@ async function envoyerCommande(event) {
         payload.telephone = digitsOnly;
         payload.items = panier.map(item => ({ nom: item.nom, quantite: item.quantite, prix: item.prix }));
         payload.waveProof = reader.result;
+        payload.paymentMode = paymentMode;
 
         const response = await fetch('/api/orders', {
             method: 'POST',
@@ -690,6 +700,18 @@ async function envoyerCommande(event) {
         orderMessage.dataset.hasUserMessage = '1';
         orderMessage.dataset.state = 'success';
         orderMessage.textContent = `${locales[getLocale()].order_success_commercial} Numéro de commande : ${result.orderNumber}. ${locales[getLocale()].order_success_followup}`;
+        const targetNumber = paymentMode === 'orange' ? '221774137575' : '221771509100';
+        const waMessage = [
+            'Bonjour, nouvelle commande.',
+            `Mode de paiement : ${paymentMode === 'orange' ? 'Orange Money' : 'Wave'}.`,
+            `Commande : ${result.orderNumber}.`,
+            `Client : ${payload.clientNom || ''}.`,
+            `Telephone : ${payload.telephone}.`,
+            `Adresse : ${payload.adresse || ''}.`,
+            `Ville : ${payload.ville || ''}.`,
+            `Total : ${result.total} FCFA.`
+        ].join('\n');
+        window.open(`https://wa.me/${targetNumber}?text=${encodeURIComponent(waMessage)}`, '_blank', 'noopener,noreferrer');
         clearPanier();
         form.reset();
     };

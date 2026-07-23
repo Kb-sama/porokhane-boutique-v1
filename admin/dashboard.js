@@ -7,6 +7,7 @@ const relationsTable = document.querySelector('#relations-table tbody');
 const ordersTable = document.querySelector('#orders-table tbody');
 const addProductButton = document.getElementById('add-product');
 const productModal = document.getElementById('product-modal');
+const closeProductModalButton = document.getElementById('close-product-modal');
 const productModalTitle = document.getElementById('product-modal-title');
 const cancelProductButton = document.getElementById('cancel-product');
 const productForm = document.getElementById('product-form');
@@ -533,6 +534,7 @@ addProductButton.addEventListener('click', () => {
     openProductModal();
 });
 cancelProductButton.addEventListener('click', closeProductModal);
+if (closeProductModalButton) closeProductModalButton.addEventListener('click', closeProductModal);
 productModal.addEventListener('click', (event) => {
     if (event.target === productModal) closeProductModal();
 });

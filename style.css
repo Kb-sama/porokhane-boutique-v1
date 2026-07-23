@@ -1065,4 +1065,74 @@ button {
     .event-card {
         flex-basis: 240px;
     }
+
+    .produits-page {
+        padding: 18px 0 40px;
+    }
+
+    .section-title {
+        margin-bottom: 16px;
+    }
+
+    .section-title h1,
+    .section-title h2 {
+        font-size: 1.6rem;
+        line-height: 1.15;
+    }
+
+    .section-block,
+    .cart-section {
+        padding: 16px;
+        border-radius: 20px;
+    }
+
+    .categories {
+        gap: 8px;
+        margin-bottom: 18px;
+    }
+
+    .categories button {
+        padding: 9px 12px;
+        font-size: 0.92rem;
+    }
+
+    .payment-actions {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .payment-actions .btn,
+    .payment-actions button,
+    .payment-actions a {
+        width: 100%;
+    }
+
+    .cart-payment-info {
+        display: none;
+    }
+
+    .payment-number-choice {
+        margin-top: 14px;
+        padding-top: 14px;
+        border-top: 1px solid var(--border);
+    }
+
+    .order-form {
+        margin-top: 16px;
+    }
+
+    .order-grid {
+        gap: 12px;
+    }
+
+    .order-form input,
+    .order-form textarea,
+    .order-form select {
+        min-height: 44px;
+    }
+
+    #liste-produits {
+        gap: 14px;
+    }
 }

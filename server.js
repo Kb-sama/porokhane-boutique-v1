@@ -69,7 +69,52 @@ function resolveDatabasePath(preferredPath, fallbackPath) {
 
   throw new Error(`Unable to create a writable database directory for ${preferredPath} or ${fallbackPath}`);
 }
+// ======================================================================
+// ROUTE POUR LE SITEMAP (ADAPTÉ POUR RENDER)
+// ======================================================================
+app.get('/sitemap.xml', (req, res) => {
+  // ⚠️ REMPLACEZ CETTE LIGNE PAR VOTRE VRAI LIEN RENDER (ex: https://porokhane.onrender.com)
+  const baseUrl = 'https://votre-app.onrender.com'; 
 
+  const staticPages = [
+    '',
+    '/accueil.html',
+    '/produit.html',
+    '/contacte.html',
+    '/live.html'
+  ];
+
+  let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+  xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
+
+  // 1. Ajout des pages fixes
+  staticPages.forEach(page => {
+    xml += '  <url>\n';
+    xml += `    <loc>${baseUrl}${page}</loc>\n`;
+    xml += '    <changefreq>daily</changefreq>\n';
+    xml += '    <priority>0.8</priority>\n';
+    xml += '  </url>\n';
+  });
+
+  // 2. Ajout dynamique des produits depuis la base de données
+  db.all('SELECT id FROM products WHERE disponible = 1', [], (err, rows) => {
+    if (!err && rows) {
+      rows.forEach(product => {
+        xml += '  <url>\n';
+        xml += `    <loc>${baseUrl}/produit.html?id=${product.id}</loc>\n`;
+        xml += '    <changefreq>weekly</changefreq>\n';
+        xml += '    <priority>0.6</priority>\n';
+        xml += '  </url>\n';
+      });
+    }
+
+    xml += '</urlset>';
+
+    res.header('Content-Type', 'application/xml');
+    res.send(xml);
+  });
+});
+// ======================================================================
 app.use('/img', express.static(path.join(__dirname, 'img')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));

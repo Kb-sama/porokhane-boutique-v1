@@ -1,885 +1,808 @@
-let tousLesProduits = [];
-let panier = JSON.parse(localStorage.getItem('porokhane-panier') || '[]');
-let siteTextsCache = {};
-const locales = {
-    fr: {
-        heroBadge: 'Boutique mode et accessoires',
-        heroTitle: 'Des articles elegants pour chaque occasion',
-        heroSubtitle: 'Decouvrez nos robes, sacs, chaussures et accessoires selectionnes pour leur qualite et leur style.',
-        heroButton: 'Voir les produits',
-        catalogBadge: 'Catalogue',
-        availableProducts: 'Produits disponibles',
-        productsFilterText: 'Filtrez rapidement les categories et ajoutez directement au panier.',
-        firstToSee: 'Ce qu il faut voir en premier',
-        trendBadge: 'Tendance',
-        trendTitle: 'Tissus tendance',
-        trendText: 'Les tissus les plus mis en avant pour inspirer rapidement les clientes.',
-        cartBadge: 'Panier',
-        yourOrder: 'Votre commande',
-        clearCart: 'Vider le panier',
-        totalDefault: 'Total : 0 FCFA',
-        loadingWave: 'Chargement des informations de paiement Wave...',
-        paymentTitle: 'Wave ou Orange Money',
-        paymentIntro: 'Choisissez d abord le mode de paiement, puis le site affiche les deux numeros disponibles pour ce mode.',
-        paymentNumbers: 'Numeros de paiement',
-        paymentWaveChoice: 'Choisir Wave',
-        paymentOrangeChoice: 'Choisir Orange Money',
-        chooseMode: 'Choisir un mode',
-        fullName: 'Nom complet',
-        phone: 'Telephone',
-        productsTitle: 'Produits populaires',
-        productsSubtitle: 'Les produits les plus utiles pour la vitrine d accueil et la conversion rapide.',
-        announcementBadge: 'Annonces et evenements',
-        announcementTitle: 'Les contenus mis en avant',
-        announcementText: 'Cette section regroupe les actualites utiles pour convertir plus vite: nouveautes, lives et offres.',
-        liveTitle: 'Aucun live en cours',
-        liveText: 'Revenez plus tard ou suivez-nous pour etre averti du prochain direct.',
-        menuHome: 'Accueil',
-        menuProducts: 'Produit',
-        menuLive: 'Live',
-        menuContact: 'Contact',
-        langButton: 'Wolof',
+const express = require('express');
+const path = require('path');
+const fs = require('fs');
+const crypto = require('crypto');
+const sqlite3 = require('sqlite3').verbose();
+const bodyParser = require('body-parser');
+const session = require('express-session');
+const bcrypt = require('bcrypt');
+const rateLimit = require('express-rate-limit');
+require('dotenv').config();
+
+const app = express();
+const port = process.env.PORT || 3000;
+const localDbPath = path.join(__dirname, 'database', 'boutique.db');
+const defaultDbPath = process.env.RENDER
+  ? '/var/data/boutique.db'
+  : localDbPath;
+const dbPath = resolveDatabasePath(process.env.DATABASE_PATH || defaultDbPath, localDbPath);
+const sessionSecret = process.env.SESSION_SECRET || 'porokhane-secret';
+const defaultAdminEmail = process.env.ADMIN_EMAIL || 'mame79915@gmail.com';
+const defaultAdminPassword = process.env.ADMIN_PASSWORD || 'V7!qR2#nL9@xP4$kZ8&mT6';
+const waveNumber = process.env.WAVE_NUMBER || '+221771509100';
+const orangeMoneyNumber = process.env.ORANGE_MONEY_NUMBER || '+221774137575';
+const contactWhatsApp = process.env.CONTACT_WHATSAPP || '+221774137575';
+const tiktokUrl = process.env.TIKTOK_URL || 'https://www.tiktok.com/@prokhanesagnsevip?is_from_webapp=1&sender_device=pc';
+const instagramUrl = process.env.INSTAGRAM_URL || 'https://www.instagram.com/porokhane_sagnese_vip?igsh=dDR5eWNicXBvd3di';
+const orderProofDir = path.join(__dirname, 'uploads', 'orders');
+const orderProofRetentionDays = Number(process.env.ORDER_PROOF_RETENTION_DAYS || 30);
+const isProduction = process.env.NODE_ENV === 'production';
+
+app.use(bodyParser.json({ limit: '10mb' }));
+app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
+app.set('trust proxy', 1);
+app.use(session({
+  secret: sessionSecret,
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: isProduction,
+    httpOnly: true,
+    sameSite: 'lax',
+    maxAge: 1000 * 60 * 60 * 8
+  }
+}));
+
+function resolveDatabasePath(preferredPath, fallbackPath) {
+  const candidates = [preferredPath, fallbackPath];
+
+  for (const candidate of candidates) {
+    const candidateDir = path.dirname(candidate);
+    const resolvedDir = path.resolve(candidateDir);
+    const workspaceRoot = path.resolve(__dirname);
+    const isWorkspacePath = resolvedDir === workspaceRoot || resolvedDir.startsWith(`${workspaceRoot}${path.sep}`);
+
+    try {
+      if (!fs.existsSync(candidateDir)) {
+        if (!isWorkspacePath) {
+          throw Object.assign(new Error('Database directory is outside the workspace'), { code: 'EACCES' });
+        }
+        fs.mkdirSync(candidateDir, { recursive: true });
+      }
+
+      fs.accessSync(candidateDir, fs.constants.W_OK | fs.constants.X_OK);
+      return candidate;
+    } catch (error) {
+      console.warn(`Database directory ${candidateDir} is not writable (${error.code || error.message}); trying fallback.`);
+    }
+  }
+
+  throw new Error(`Unable to create a writable database directory for ${preferredPath} or ${fallbackPath}`);
+}
+
+app.use('/img', express.static(path.join(__dirname, 'img')));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// ======================================================================
+// ROUTE DE VALIDATION GOOGLE SEARCH CONSOLE
+// ======================================================================
+app.get('/googleb25bfaa0abbca861.html', (req, res) => res.sendFile(path.join(__dirname, 'googleb25bfaa0abbca861.html')));
+// ======================================================================
+
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+app.get('/index.html', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+app.get('/accueil.html', (req, res) => res.sendFile(path.join(__dirname, 'accueil.html')));
+app.get('/produit.html', (req, res) => res.sendFile(path.join(__dirname, 'produit.html')));
+app.get('/contacte.html', (req, res) => res.sendFile(path.join(__dirname, 'contacte.html')));
+app.get('/live.html', (req, res) => res.sendFile(path.join(__dirname, 'live.html')));
+app.get('/politique-confidentialite.html', (req, res) => res.sendFile(path.join(__dirname, 'politique-confidentialite.html')));
+app.get('/style.css', (req, res) => res.sendFile(path.join(__dirname, 'style.css')));
+app.get('/script.js', (req, res) => res.sendFile(path.join(__dirname, 'script.js')));
+app.get('/live.js', (req, res) => res.sendFile(path.join(__dirname, 'live.js')));
+app.get('/admin/admin.css', (req, res) => res.sendFile(path.join(__dirname, 'admin', 'admin.css')));
+app.get('/admin/login.js', (req, res) => res.sendFile(path.join(__dirname, 'admin', 'login.js')));
+app.get('/admin/dashboard.js', (req, res) => res.sendFile(path.join(__dirname, 'admin', 'dashboard.js')));
+
+const db = new sqlite3.Database(dbPath);
+
+function hashPassword(password) {
+  return bcrypt.hashSync(password, 10);
+}
+
+function verifyPassword(password, hashedPassword) {
+  return bcrypt.compareSync(password, hashedPassword);
+}
+
+function generateOrderNumber() {
+  const random = crypto.randomBytes(3).toString('hex').toUpperCase();
+  return `PK-${Date.now()}-${random}`;
+}
+
+function ensureOrderProofDir() {
+  if (!fs.existsSync(orderProofDir)) {
+    fs.mkdirSync(orderProofDir, { recursive: true });
+  }
+}
+
+function saveOrderProof(dataUrl, orderNumber) {
+  if (typeof dataUrl !== 'string' || !dataUrl.startsWith('data:image/')) return null;
+  const match = dataUrl.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
+  if (!match) return null;
+  const mime = match[1];
+  const base64 = match[2];
+  const extension = mime.includes('png') ? 'png' : mime.includes('webp') ? 'webp' : 'jpg';
+  ensureOrderProofDir();
+  const fileName = `${orderNumber}-${Date.now()}.${extension}`;
+  const relativePath = path.posix.join('uploads', 'orders', fileName);
+  const absolutePath = path.join(orderProofDir, fileName);
+  fs.writeFileSync(absolutePath, Buffer.from(base64, 'base64'));
+  return `/${relativePath}`.replace(/\\/g, '/');
+}
+
+function cleanupOldOrderProofs(retentionDays = orderProofRetentionDays) {
+  const days = Number.isFinite(retentionDays) ? retentionDays : 30;
+  if (days <= 0) return;
+  const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+  ensureOrderProofDir();
+  fs.readdir(orderProofDir, (err, files) => {
+    if (err) return;
+    files.forEach((file) => {
+      const fullPath = path.join(orderProofDir, file);
+      fs.stat(fullPath, (statErr, stats) => {
+        if (statErr) return;
+        if (stats.mtimeMs < cutoff) {
+          fs.unlink(fullPath, () => {});
+        }
+      });
+    });
+  });
+}
+
+function validateProductPayload(payload) {
+  const errors = [];
+  if (!payload || typeof payload !== 'object') return { valid: false, errors: ['Payload invalide'] };
+
+  const nom = String(payload.nom || '').trim();
+  const description = String(payload.description || '').trim();
+  const categorie = String(payload.categorie || '').trim();
+  const productType = String(payload.productType || 'autre').trim().toLowerCase();
+  const image = String(payload.image || '').trim();
+  const prix = Number(payload.prix);
+  const stock = Number(payload.stock);
+  const promotion = Number(payload.promotion || 0);
+  const disponible = Number(payload.disponible ?? 1);
+
+  if (!nom) errors.push('Le nom du produit est requis');
+  if (!['tissue', 'robe', 'sac', 'chaussure', 'colier', 'autre'].includes(productType)) errors.push('Le type du produit est invalide');
+  if (!Number.isFinite(prix) || prix < 0) errors.push('Le prix doit être un nombre positif');
+  if (!Number.isFinite(stock) || stock < 0) errors.push('Le stock doit être un nombre positif');
+  if (!Number.isFinite(promotion) || promotion < 0) errors.push('La promotion doit être un nombre positif');
+  if (![0, 1].includes(disponible)) errors.push('La disponibilité doit être 0 ou 1');
+
+  return {
+    valid: errors.length === 0,
+    errors,
+    cleaned: {
+      nom,
+      description,
+      categorie,
+      productType,
+      image: image || 'img/logo.jpeg',
+      prix: Math.round(prix),
+      stock: Math.round(stock),
+      promotion: Math.round(promotion),
+      disponible: disponible === 1 ? 1 : 0,
+    }
+  };
+}
+
+function computePriceChange(currentPrice, previousPrice) {
+  const current = Number(currentPrice);
+  const previous = Number(previousPrice);
+  if (!Number.isFinite(current) || !Number.isFinite(previous) || previous <= 0 || current === previous) {
+    return null;
+  }
+
+  return {
+    oldPrice: Math.round(previous),
+    currentPrice: Math.round(current),
+    changePercent: Math.round((Math.abs(current - previous) / previous) * 100),
+    changeType: current < previous ? 'decrease' : 'increase'
+  };
+}
+
+function normalizeCategoryName(value) {
+  return String(value || '').trim();
+}
+
+db.serialize(() => {
+  db.run(`CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT UNIQUE,
+    password TEXT,
+    role TEXT
+  )`);
+  db.run(`CREATE TABLE IF NOT EXISTS products (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nom TEXT,
+    description TEXT,
+    categorie TEXT,
+    product_type TEXT DEFAULT 'autre',
+    prix INTEGER,
+    prix_avant INTEGER,
+    stock INTEGER,
+    promotion INTEGER DEFAULT 0,
+    image TEXT,
+    disponible INTEGER DEFAULT 1
+  )`);
+  db.run(`CREATE TABLE IF NOT EXISTS product_models (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    product_id INTEGER NOT NULL,
+    nom TEXT NOT NULL,
+    image TEXT,
+    description TEXT,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(product_id) REFERENCES products(id) ON DELETE CASCADE
+  )`);
+  db.run(`CREATE TABLE IF NOT EXISTS product_relations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    robe_product_id INTEGER NOT NULL,
+    tissue_product_id INTEGER NOT NULL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(robe_product_id, tissue_product_id),
+    FOREIGN KEY(robe_product_id) REFERENCES products(id) ON DELETE CASCADE,
+    FOREIGN KEY(tissue_product_id) REFERENCES products(id) ON DELETE CASCADE
+  )`);
+  db.run(`CREATE TABLE IF NOT EXISTS site_texts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    key TEXT UNIQUE,
+    value TEXT
+  )`);
+  db.run(`CREATE TABLE IF NOT EXISTS categories (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    parent_id INTEGER DEFAULT NULL,
+    image TEXT DEFAULT '',
+    description TEXT DEFAULT '',
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(parent_id) REFERENCES categories(id) ON DELETE CASCADE
+  )`);
+  db.run(`CREATE TABLE IF NOT EXISTS whatsapp_links (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    label TEXT,
+    numero TEXT,
+    message TEXT
+  )`);
+  db.run(`CREATE TABLE IF NOT EXISTS custom_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    titre TEXT NOT NULL,
+    description TEXT NOT NULL,
+    accent TEXT DEFAULT '',
+    date TEXT DEFAULT '',
+    image TEXT DEFAULT '',
+    ordre INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+  )`);
+  db.run(`CREATE TABLE IF NOT EXISTS live_status (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    statut TEXT,
+    titre TEXT,
+    plateforme TEXT,
+    lien TEXT,
+    message TEXT
+  )`);
+  db.run(`CREATE TABLE IF NOT EXISTS orders (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    numero_commande TEXT UNIQUE,
+    client_nom TEXT,
+    telephone TEXT,
+    adresse TEXT,
+    ville TEXT,
+    commentaire TEXT,
+    statut TEXT DEFAULT 'en_attente',
+    montant_total INTEGER DEFAULT 0,
+    wave_numero TEXT,
+    preuve_paiement TEXT,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+  )`);
+  db.run(`CREATE TABLE IF NOT EXISTS order_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_id INTEGER,
+    nom TEXT,
+    quantite INTEGER,
+    prix INTEGER,
+    total INTEGER,
+    FOREIGN KEY(order_id) REFERENCES orders(id)
+  )`);
+
+  db.run(`
+    INSERT INTO users (email, password, role)
+    VALUES (?, ?, ?)
+    ON CONFLICT(email) DO UPDATE SET
+      password = excluded.password,
+      role = excluded.role
+  `, [
+    defaultAdminEmail,
+    hashPassword(defaultAdminPassword),
+    'administrateur'
+  ]);
+  db.run(`INSERT OR IGNORE INTO live_status (id, statut, titre, plateforme, lien, message)
+    VALUES (1, 'off', 'Pas de live pour le moment', 'TikTok', '${tiktokUrl}', 'Notre prochain live commence bientôt.')`);
+  db.run(`INSERT OR IGNORE INTO site_texts (key, value) VALUES
+    ('hero_title', 'Bienvenue chez Porokhane'),
+    ('hero_subtitle', 'Découvrez notre collection'),
+    ('button_text', 'Commander maintenant')`);
+  db.run(`INSERT OR IGNORE INTO whatsapp_links (label, numero, message) VALUES
+    ('Service Client', '${contactWhatsApp}', 'Bonjour je souhaite commander.')`);
+  db.run(`ALTER TABLE products ADD COLUMN product_type TEXT DEFAULT 'autre'`, () => {});
+  db.run(`ALTER TABLE products ADD COLUMN prix_avant INTEGER`, () => {});
+});
+
+function requireLogin(req, res, next) {
+  if (req.session && req.session.user) return next();
+  if (req.path.endsWith('.html') || req.path === '/admin' || req.path === '/admin/') {
+    return res.redirect('/admin/login.html');
+  }
+  return res.status(401).json({ error: 'Non authentifié' });
+}
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Trop de tentatives de connexion. Réessayez dans 15 minutes.' }
+});
+
+app.post('/api/login', loginLimiter, (req, res) => {
+  const { email, password } = req.body;
+  db.get('SELECT * FROM users WHERE email = ?', [email], (err, user) => {
+    if (err || !user) return res.status(401).json({ error: 'Identifiants invalides' });
+    if (!verifyPassword(password, user.password)) return res.status(401).json({ error: 'Identifiants invalides' });
+    req.session.user = { id: user.id, email: user.email, role: user.role };
+    req.session.save((saveErr) => {
+      if (saveErr) {
+        return res.status(500).json({ error: 'Impossible de créer la session' });
+      }
+      res.json({ success: true });
+    });
+  });
+});
+
+app.post('/api/logout', (req, res) => {
+  req.session.destroy(() => res.json({ success: true }));
+});
+
+app.get('/api/products', requireLogin, (req, res) => {
+  db.all('SELECT * FROM products', [], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    db.all('SELECT * FROM product_models', [], (modelErr, models) => {
+      if (modelErr) return res.status(500).json({ error: modelErr.message });
+      db.all('SELECT * FROM product_relations', [], (relationErr, relations) => {
+        if (relationErr) return res.status(500).json({ error: relationErr.message });
+        const modelsByProduct = models.reduce((acc, model) => {
+          if (!acc[model.product_id]) acc[model.product_id] = [];
+          acc[model.product_id].push(model);
+          return acc;
+        }, {});
+        const relationsByRobe = relations.reduce((acc, relation) => {
+          if (!acc[relation.robe_product_id]) acc[relation.robe_product_id] = [];
+          acc[relation.robe_product_id].push(relation.tissue_product_id);
+          return acc;
+        }, {});
+        res.json(rows.map(product => ({
+          ...product,
+          models: modelsByProduct[product.id] || [],
+          linked_tissues: relationsByRobe[product.id] || []
+        })));
+      });
+    });
+  });
+});
+
+app.post('/api/products', requireLogin, (req, res) => {
+  const validation = validateProductPayload(req.body);
+  if (!validation.valid) return res.status(400).json({ error: validation.errors.join(', ') });
+
+  const { nom, description, categorie, productType, prix, stock, promotion, image, disponible } = validation.cleaned;
+  db.run(`INSERT INTO products (nom, description, categorie, product_type, prix, prix_avant, stock, promotion, image, disponible)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  [nom, description, categorie, productType, prix, null, stock, promotion, image, disponible], function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ id: this.lastID });
+  });
+});
+
+app.put('/api/products/:id', requireLogin, (req, res) => {
+  const validation = validateProductPayload(req.body);
+  if (!validation.valid) return res.status(400).json({ error: validation.errors.join(', ') });
+
+  const { id } = req.params;
+  const { nom, description, categorie, productType, prix, stock, promotion, image, disponible } = validation.cleaned;
+  db.get('SELECT prix FROM products WHERE id = ?', [id], (selectErr, existing) => {
+    if (selectErr) return res.status(500).json({ error: selectErr.message });
+    if (!existing) return res.status(404).json({ error: 'Produit introuvable' });
+
+    const priceChange = computePriceChange(prix, existing.prix);
+    const previousPrice = priceChange ? existing.prix : null;
+
+    db.run(`UPDATE products SET nom = ?, description = ?, categorie = ?, product_type = ?, prix = ?, prix_avant = ?, stock = ?, promotion = ?, image = ?, disponible = ? WHERE id = ?`,
+      [nom, description, categorie, productType, prix, previousPrice, stock, promotion, image, disponible, id], function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ updated: this.changes, priceChange });
+      });
+    });
+});
+
+app.delete('/api/products/:id', requireLogin, (req, res) => {
+  db.run('DELETE FROM products WHERE id = ?', [req.params.id], function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ deleted: this.changes });
+  });
+});
+
+app.get('/api/site-texts', requireLogin, (req, res) => {
+  db.all('SELECT * FROM site_texts', [], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(rows);
+  });
+});
+
+app.post('/api/site-texts', requireLogin, (req, res) => {
+  const { key, value } = req.body;
+  db.run('INSERT OR REPLACE INTO site_texts (key, value) VALUES (?, ?)', [key, value], function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ success: true });
+  });
+});
+
+app.get('/api/live-status', requireLogin, (req, res) => {
+  db.all('SELECT * FROM live_status', [], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(rows);
+  });
+});
+
+app.post('/api/live-status', requireLogin, (req, res) => {
+  const { statut, titre, plateforme, lien, message } = req.body;
+  db.run('DELETE FROM live_status', [], function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    db.run('INSERT INTO live_status (statut, titre, plateforme, lien, message) VALUES (?, ?, ?, ?, ?)',
+      [statut, titre, plateforme, lien, message], function(err2) {
+        if (err2) return res.status(500).json({ error: err2.message });
+        res.json({ success: true });
+      });
+  });
+});
+
+app.get('/api/public/products', (req, res) => {
+  db.all('SELECT id, nom, categorie, prix, prix_avant, image, stock, disponible, description FROM products WHERE disponible = 1', [], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(rows.map((product) => ({
+      ...product,
+      priceChange: computePriceChange(product.prix, product.prix_avant)
+    })));
+  });
+});
+
+app.get('/api/public/live', (req, res) => {
+  db.get('SELECT * FROM live_status ORDER BY id DESC LIMIT 1', [], (err, row) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(row || {});
+  });
+});
+
+app.get('/api/public/site-texts', (req, res) => {
+  db.all('SELECT key, value FROM site_texts', [], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    const payload = rows.reduce((acc, item) => ({ ...acc, [item.key]: item.value }), {});
+    res.json(payload);
+  });
+});
+
+app.get('/api/public/whatsapp', (req, res) => {
+  db.all('SELECT label, numero, message FROM whatsapp_links', [], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(rows);
+  });
+});
+
+app.get('/api/product-models', requireLogin, (req, res) => {
+  const productId = Number(req.query.productId);
+  const params = Number.isFinite(productId) ? [productId] : [];
+  const query = Number.isFinite(productId)
+    ? 'SELECT * FROM product_models WHERE product_id = ? ORDER BY id DESC'
+    : 'SELECT * FROM product_models ORDER BY id DESC';
+  db.all(query, params, (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(rows);
+  });
+});
+
+app.post('/api/product-models', requireLogin, (req, res) => {
+  const productId = Number(req.body.productId);
+  const nom = String(req.body.nom || '').trim();
+  const image = String(req.body.image || '').trim();
+  const description = String(req.body.description || '').trim();
+
+  if (!Number.isInteger(productId) || productId <= 0) return res.status(400).json({ error: 'Produit invalide' });
+  if (!nom) return res.status(400).json({ error: 'Le nom du modèle est requis' });
+
+  db.run('INSERT INTO product_models (product_id, nom, image, description) VALUES (?, ?, ?, ?)',
+    [productId, nom, image, description], function(err) {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ id: this.lastID });
+    });
+});
+
+app.delete('/api/product-models/:id', requireLogin, (req, res) => {
+  db.run('DELETE FROM product_models WHERE id = ?', [req.params.id], function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ deleted: this.changes });
+  });
+});
+
+app.get('/api/product-relations', requireLogin, (req, res) => {
+  db.all('SELECT * FROM product_relations ORDER BY id DESC', [], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(rows);
+  });
+});
+
+app.post('/api/product-relations', requireLogin, (req, res) => {
+  const robeProductId = Number(req.body.robeProductId);
+  const tissueProductId = Number(req.body.tissueProductId);
+  if (!Number.isInteger(robeProductId) || robeProductId <= 0 || !Number.isInteger(tissueProductId) || tissueProductId <= 0) {
+    return res.status(400).json({ error: 'Relation invalide' });
+  }
+  if (robeProductId === tissueProductId) {
+    return res.status(400).json({ error: 'La robe et le tissu doivent être différents' });
+  }
+
+  db.run('INSERT OR IGNORE INTO product_relations (robe_product_id, tissue_product_id) VALUES (?, ?)',
+    [robeProductId, tissueProductId], function(err) {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ id: this.lastID, inserted: this.changes });
+    });
+});
+
+app.delete('/api/product-relations/:id', requireLogin, (req, res) => {
+  db.run('DELETE FROM product_relations WHERE id = ?', [req.params.id], function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ deleted: this.changes });
+  });
+});
+
+app.get('/api/public/events', (req, res) => {
+  res.json([
+    {
+      titre: 'Nouvelle collection',
+      date: 'Chaque semaine',
+      description: 'Des arrivages sélectionnés de sacs, robes et chaussures sont publiés en priorité sur la page d accueil.',
+      accent: 'Collection'
     },
-    wo: {
-        heroBadge: 'Boutik moda ak akseswar',
-        heroTitle: 'Am na ay artik yi rafet ci benn mbind',
-        heroSubtitle: 'Xamlu ndax rok, sac, sapato ak akseswar yi nu tànn ci seen kalite ak seen style.',
-        heroButton: 'Wonee produi yi',
-        catalogBadge: 'Kataloog',
-        availableProducts: 'Produi yi siiw',
-        productsFilterText: 'Jappale sa jëfandikoo ci categories yi te yokk leen ci panier bi.',
-        firstToSee: 'Lu war a gis jëkk',
-        trendBadge: 'Njàngat',
-        trendTitle: 'Tissu yu tendance',
-        trendText: 'Tissu yi gën a feeñ ngir jox ndimbal ci xel bu ndaw.',
-        cartBadge: 'Panier',
-        yourOrder: 'Sa commande',
-        clearCart: 'Laxal panier bi',
-        totalDefault: 'Jëfandikoo : 0 FCFA',
-        loadingWave: 'Dëgëlu xibaar yu paiement Wave...',
-        paymentTitle: 'Wave walla Orange Money',
-        paymentIntro: 'Tànn jëfandikoo bi jëkk, ba tax site bi wone ñaari numer yi am ci mode boobu.',
-        paymentNumbers: 'Numeros yu paiement',
-        paymentWaveChoice: 'Tànn Wave',
-        paymentOrangeChoice: 'Tànn Orange Money',
-        chooseMode: 'Tànn benn mode',
-        fullName: 'Moom bu mat',
-        phone: 'Telefon',
-        productsTitle: 'Produi yi gën a am solo',
-        productsSubtitle: 'Produi yi ëpp solo ngir vitrine bi ak jàllale jaay bi gaaw.',
-        announcementBadge: 'Xibaar ak event yi',
-        announcementTitle: 'Xibaar yi gën a am solo',
-        announcementText: 'Bii section dafay wone xibaar yi am solo: yeneen, live ak promo.',
-        liveTitle: 'Kenn du live lii tax',
-        liveText: 'Dellu waxtu weneen walla topp sunu page yi ngir xam lu bees am.',
-        menuHome: 'Dal',
-        menuProducts: 'Produi',
-        menuLive: 'Live',
-        menuContact: 'Jokkoo',
-        langButton: 'Français',
+    {
+      titre: 'Annonces live',
+      date: 'Avant chaque direct',
+      description: 'Les prochains lives sont mis en avant pour permettre aux clients de se préparer et poser leurs questions.',
+      accent: 'Live'
+    },
+    {
+      titre: 'Offres WhatsApp',
+      date: 'Disponible maintenant',
+      description: 'Les promotions et la disponibilité des produits sont partagées en un clic vers WhatsApp.',
+      accent: 'Promo'
+    },
+    {
+      titre: 'Commandes rapides',
+      date: '24h/24',
+      description: 'Le panier et les options de paiement sont optimisés pour finaliser une commande sans friction.',
+      accent: 'Commande'
     }
-};
-
-Object.assign(locales.fr, {
-    brand_name: 'Porokhane Sagnse VIP',
-    brand_logo_alt: 'Logo Porokhane Sagnse VIP',
-    nav_home: 'Accueil',
-    nav_products: 'Produit',
-    nav_live: 'Live',
-    nav_contact: 'Contact',
-    hero_badge: 'Boutique mode et accessoires',
-    hero_title: 'Des articles elegants pour chaque occasion',
-    hero_subtitle: 'Decouvrez nos robes, sacs, chaussures et accessoires selectionnes pour leur qualite et leur style.',
-    hero_button: 'Voir les produits',
-    announcements_badge: 'Annonces',
-    announcements_title: 'Les mises en avant importantes',
-    announcements_text: 'Les annonces, evenements et offres utiles apparaissent ici pour orienter les visiteurs plus vite.',
-    events_badge: 'Evenements',
-    events_title: 'Fil d actualite boutique',
-    events_text: 'Un carrousel fluide pour afficher les sujets les plus importants sans surcharger la page.',
-    live_badge: 'Live',
-    live_title: 'Aucun live en cours',
-    live_text: 'Revenez plus tard ou suivez-nous pour etre averti du prochain direct.',
-    live_offline_title: 'Le direct n a pas encore commence',
-    live_offline_text: 'Quand le live sera actif, la video apparaitra ici.',
-    stay_informed: 'Rester informe',
-    follow_tiktok: 'Suivre sur TikTok',
-    notify_whatsapp: 'Etre averti sur WhatsApp',
-    join_whatsapp_group: 'Rejoindre le groupe WhatsApp',
-    whatsapp_group_text: 'Recevez les nouveautes et les offres exclusives',
-    address_text: 'Niogui HLM Grand Yoff, côté rond-point mairie bi.',
-    see_map: 'Voir sur la carte',
-        footer_text: '© 2026 Porokhane Sagnse VIP. Tous droits reserves.',
-        privacy_policy: 'Politique de confidentialité',
-    previous: 'Precedent',
-    next: 'Suivant',
-    whatsapp: 'WhatsApp',
-    whatsapp_group: 'Groupe WhatsApp',
-    order_success_prefix: 'Votre commande a ete envoyee avec succes.',
-    order_success_followup: 'Nous vous contacterons rapidement au numero indique.',
-    order_success_commercial: 'Votre commande est bien enregistree. Nous vous appelons rapidement pour confirmer les details et finaliser votre achat.',
-    order_missing_panier: 'Votre panier est vide.',
-    order_missing_wave: 'Televersez une preuve de paiement.',
-    order_submit_error: 'Erreur lors de l envoi de la commande.',
-    support_label: 'Besoin d aide rapide ?',
-    support_text: 'Ecrivez-nous sur WhatsApp pour confirmer une taille, un stock ou un delai.',
-    whatsapp_order_text: 'Commander maintenant',
-    whatsapp_support_text: 'Besoin d aide ?'
+  ]);
 });
 
-Object.assign(locales.wo, {
-    brand_name: 'Porokhane Sagnse VIP',
-    brand_logo_alt: 'Logo Porokhane Sagnse VIP',
-    nav_home: 'Dal',
-    nav_products: 'Produi',
-    nav_live: 'Live',
-    nav_contact: 'Jokkoo',
-    hero_badge: 'Boutik moda ak akseswar',
-    hero_title: 'Am na ay artik yu rafet ci benn mbind',
-    hero_subtitle: 'Xamlu ndax rok, sac, sapato ak akseswar yi nu tànn ci seen kalite ak seen style.',
-    hero_button: 'Wonee produi yi',
-    announcements_badge: 'Xibaar',
-    announcements_title: 'Lu am solo yi',
-    announcements_text: 'Xibaar yi, event yi ak promo yi dinañu feeñ fii ngir aji jaar yi gën a gaaw dox.',
-    events_badge: 'Event yi',
-    events_title: 'Xibaar bu boutique',
-    events_text: 'Carrousel bu néew dëgër ngir wone sujéet yu am solo yi walla page bi mu du metti.',
-    live_badge: 'Live',
-    live_title: 'Amul live léegi',
-    live_text: 'Dellu ci beneen waxtu walla topp sunu page yi ngir xam bu live bi ñëw.',
-    live_offline_title: 'Live bi jotagul',
-    live_offline_text: 'Bu live bi jàppé, video bi dina feeñ fii.',
-    stay_informed: 'Wone sa xam-xam',
-    follow_tiktok: 'Topp ci TikTok',
-    notify_whatsapp: 'Xamal ma ci WhatsApp',
-    join_whatsapp_group: 'Dugg ci groupe WhatsApp bi',
-    whatsapp_group_text: 'Jot ay xibaar yu bees ak promo yi.',
-    address_text: 'Niogui HLM Grand Yoff, ci wetu rond-point mairie bi.',
-    see_map: 'Wonee ci carte bi',
-        footer_text: '© 2026 Porokhane Sagnse VIP. Benn droit amul lu ëpp.',
-        privacy_policy: 'Politique de confidentialité',
-    previous: 'Ginnaaw',
-    next: 'Gannaaw',
-    whatsapp: 'WhatsApp',
-    whatsapp_group: 'Groupe WhatsApp',
-    order_success_prefix: 'Sa commande bi jomm naa ak success.',
-    order_success_followup: 'Dinañu la woow ci numero bi nga joxe.',
-    order_success_commercial: 'Sa commande bi denc naa. Dinañu la woow gaaw ngir valider details yi te soppi jëfandikoo bi.',
-    order_missing_panier: 'Sa panier bi dafa féex.',
-    order_missing_wave: 'Joxe preuve bi ci paiement.',
-    order_submit_error: 'Am na njuumte ci yónnee commande bi.',
-    support_label: 'Am na laaj bu gaaw ?',
-    support_text: 'Bind nu ci WhatsApp ngir wone size, stock walla waxtu delivery.',
-    whatsapp_order_text: 'Jox xaalis léegi',
-    whatsapp_support_text: 'Laaj am naa ?'
+app.get('/api/public/payment-instructions', (req, res) => {
+  res.json({
+    waveNumber,
+    orangeMoneyNumber,
+    beneficiaire: 'Diary Diop',
+    whatsappNumber: '221774137575',
+    instructions: 'Wave et Orange Money acceptent les deux numéros. Prenez une capture d écran de confirmation, puis téléversez-la dans le formulaire de commande.'
+  });
 });
 
-function getLocale() {
-    return localStorage.getItem('porokhane-lang') || 'fr';
-}
+app.get('/api/categories', requireLogin, (req, res) => {
+  db.all('SELECT * FROM categories ORDER BY COALESCE(parent_id, id), parent_id IS NOT NULL, name ASC', [], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    db.all('SELECT categorie, COUNT(*) AS count FROM products WHERE categorie IS NOT NULL AND categorie != "" GROUP BY categorie', [], (countErr, counts) => {
+      if (countErr) return res.status(500).json({ error: countErr.message });
+      const countMap = counts.reduce((acc, row) => {
+        acc[String(row.categorie).toLowerCase()] = row.count;
+        return acc;
+      }, {});
+      res.json(rows.map((category) => ({
+        ...category,
+        productCount: countMap[String(category.name).toLowerCase()] || 0
+      })));
+    });
+  });
+});
 
-function setLocale(lang) {
-    localStorage.setItem('porokhane-lang', lang);
-    applyLocale();
-}
+app.get('/api/public/categories', (req, res) => {
+  db.all('SELECT * FROM categories ORDER BY COALESCE(parent_id, id), parent_id IS NOT NULL, name ASC', [], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(rows);
+  });
+});
 
-function applyLocale() {
-    const lang = getLocale();
-    const t = locales[lang] || locales.fr;
-    document.documentElement.lang = lang === 'wo' ? 'wo' : 'fr';
-    document.querySelectorAll('[data-i18n]').forEach((el) => {
-        const key = el.getAttribute('data-i18n');
-        if (t[key]) el.textContent = t[key];
-    });
-    document.querySelectorAll('[data-i18n-alt]').forEach((el) => {
-        const key = el.getAttribute('data-i18n-alt');
-        if (t[key]) el.setAttribute('alt', t[key]);
-    });
-    document.querySelectorAll('[data-i18n-aria-label]').forEach((el) => {
-        const key = el.getAttribute('data-i18n-aria-label');
-        if (t[key]) el.setAttribute('aria-label', t[key]);
-    });
-    document.querySelectorAll('[data-i18n-html]').forEach((el) => {
-        const key = el.getAttribute('data-i18n-html');
-        if (key === 'footer_text') {
-            el.innerHTML = `${t.footer_text} <a href="politique-confidentialite.html">${t.privacy_policy}</a>`;
-        } else if (t[key]) {
-            el.innerHTML = t[key];
+app.post('/api/categories', requireLogin, (req, res) => {
+  const name = normalizeCategoryName(req.body.name);
+  const parentId = req.body.parentId === '' || req.body.parentId === null || req.body.parentId === undefined ? null : Number(req.body.parentId);
+  const image = String(req.body.image || '').trim();
+  const description = String(req.body.description || '').trim();
+  if (!name) return res.status(400).json({ error: 'Le nom de la catégorie est requis' });
+  if (parentId !== null && (!Number.isInteger(parentId) || parentId <= 0)) return res.status(400).json({ error: 'Catégorie parent invalide' });
+
+  db.run('INSERT INTO categories (name, parent_id, image, description) VALUES (?, ?, ?, ?)', [name, parentId, image, description], function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ id: this.lastID });
+  });
+});
+
+app.put('/api/categories/:id', requireLogin, (req, res) => {
+  const id = Number(req.params.id);
+  const name = normalizeCategoryName(req.body.name);
+  const parentId = req.body.parentId === '' || req.body.parentId === null || req.body.parentId === undefined ? null : Number(req.body.parentId);
+  const image = String(req.body.image || '').trim();
+  const description = String(req.body.description || '').trim();
+  if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'Catégorie invalide' });
+  if (!name) return res.status(400).json({ error: 'Le nom de la catégorie est requis' });
+  if (parentId !== null && (!Number.isInteger(parentId) || parentId <= 0 || parentId === id)) return res.status(400).json({ error: 'Catégorie parent invalide' });
+
+  db.run('UPDATE categories SET name = ?, parent_id = ?, image = ?, description = ? WHERE id = ?', [name, parentId, image, description, id], function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ updated: this.changes });
+  });
+});
+
+app.delete('/api/categories/:id', requireLogin, (req, res) => {
+  db.run('DELETE FROM categories WHERE id = ?', [req.params.id], function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ deleted: this.changes });
+  });
+});
+
+app.post('/api/orders', (req, res) => {
+  const { clientNom, telephone, adresse, ville, commentaire, items, waveProof } = req.body;
+  const normalizedItems = Array.isArray(items)
+    ? items.map(item => ({
+      nom: String(item.nom || '').trim(),
+      quantite: Number(item.quantite || 0),
+      prix: Number(item.prix || 0)
+    })).filter(item => item.nom && item.quantite > 0 && Number.isFinite(item.prix) && item.prix >= 0)
+    : [];
+
+  if (!clientNom || !telephone || !adresse || !ville || !waveProof || typeof waveProof !== 'string' || !waveProof.startsWith('data:image/')) {
+    return res.status(400).json({ error: 'Informations incomplètes. Vérifiez le formulaire et la preuve de paiement.' });
+  }
+
+  if (normalizedItems.length === 0) {
+    return res.status(400).json({ error: 'Ajoutez au moins un produit au panier.' });
+  }
+
+  const total = normalizedItems.reduce((sum, item) => sum + item.prix * item.quantite, 0);
+  const numeroCommande = generateOrderNumber();
+  const proofPath = saveOrderProof(waveProof, numeroCommande);
+
+  if (!proofPath) {
+    return res.status(400).json({ error: 'La preuve de paiement doit être une image valide.' });
+  }
+
+  db.run(`INSERT INTO orders (numero_commande, client_nom, telephone, adresse, ville, commentaire, statut, montant_total, wave_numero, preuve_paiement)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  [numeroCommande, String(clientNom).trim(), String(telephone).trim(), String(adresse).trim(), String(ville).trim(), String(commentaire || '').trim(), 'en_attente', total, waveNumber, proofPath],
+  function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+
+    const orderId = this.lastID;
+    let completed = 0;
+    let failed = false;
+
+    normalizedItems.forEach(item => {
+      db.run(`INSERT INTO order_items (order_id, nom, quantite, prix, total)
+              VALUES (?, ?, ?, ?, ?)`,
+      [orderId, item.nom, item.quantite, item.prix, item.prix * item.quantite],
+      function(itemErr) {
+        if (failed) return;
+        if (itemErr) {
+          failed = true;
+          return res.status(500).json({ error: itemErr.message });
         }
-    });
-    const langToggle = document.getElementById('lang-toggle');
-    if (langToggle) langToggle.textContent = lang === 'fr' ? 'Wolof' : 'Français';
-
-    const orderMessage = document.getElementById('order-message');
-    const paymentInfo = document.getElementById('payment-info');
-    if (orderMessage && !orderMessage.dataset.hasUserMessage) {
-        orderMessage.textContent = '';
-    }
-    if (paymentInfo && !paymentInfo.dataset.supportInjected) {
-        const supportNumber = getSupportNumber();
-        paymentInfo.insertAdjacentHTML('beforeend', `
-            <div class="payment-support">
-                <strong>${t.support_label}</strong>
-                <p>${t.support_text}</p>
-                <a class="btn btn-secondary" href="https://wa.me/${supportNumber}?text=${encodeURIComponent(t.whatsapp_support_text)}" target="_blank" rel="noopener noreferrer">${t.whatsapp_support_text}</a>
-            </div>
-        `);
-        paymentInfo.dataset.supportInjected = '1';
-    }
-}
-
-function getSupportNumber() {
-    return '221774137575';
-}
-
-function showToast(message) {
-    let toast = document.querySelector('.toast');
-    if (!toast) {
-        toast = document.createElement('div');
-        toast.className = 'toast';
-        document.body.appendChild(toast);
-    }
-    toast.textContent = message;
-    toast.classList.add('show');
-    clearTimeout(showToast.timeout);
-    showToast.timeout = setTimeout(() => toast.classList.remove('show'), 2200);
-}
-
-function mettreAJourPanier() {
-    localStorage.setItem('porokhane-panier', JSON.stringify(panier));
-
-    const grandTotal = panier.reduce((sum, item) => sum + item.prix * item.quantite, 0);
-    const cartTotal = document.getElementById('cart-total');
-    const cartItems = document.getElementById('cart-items');
-    const orderSubmit = document.getElementById('order-submit');
-
-    if (cartItems) {
-        cartItems.innerHTML = panier.length
-            ? panier.map(item => `
-                <div class="cart-item">
-                    <div>
-                        <strong>${item.nom}</strong>
-                        <p>${item.quantite} x ${item.prix} FCFA</p>
-                    </div>
-                    <div class="cart-actions">
-                        <button type="button" data-action="minus" data-id="${item.id}">-</button>
-                        <button type="button" data-action="plus" data-id="${item.id}">+</button>
-                        <button type="button" data-action="remove" data-id="${item.id}">Supprimer</button>
-                    </div>
-                </div>
-            `).join('')
-            : '<p class="message-erreur">Votre panier est vide.</p>';
-    }
-
-    if (cartTotal) cartTotal.textContent = `Total : ${grandTotal} FCFA`;
-    if (orderSubmit) orderSubmit.disabled = panier.length === 0;
-}
-
-function ajouterAuPanier(produit) {
-    const existing = panier.find(item => item.id === produit.id);
-    if (existing) {
-        existing.quantite += 1;
-    } else {
-        panier.push({ ...produit, quantite: 1 });
-    }
-    mettreAJourPanier();
-    showToast(`${produit.nom} ajouté au panier`);
-}
-
-function modifierPanier(id, delta) {
-    const existing = panier.find(item => item.id === id);
-    if (!existing) return;
-    existing.quantite += delta;
-    if (existing.quantite <= 0) {
-        panier = panier.filter(item => item.id !== id);
-    }
-    mettreAJourPanier();
-}
-
-function clearPanier() {
-    panier = [];
-    mettreAJourPanier();
-}
-
-async function chargerJson(url) {
-    const response = await fetch(url);
-    if (!response.ok) {
-        throw new Error(`Erreur de chargement: ${url}`);
-    }
-    return response.json();
-}
-
-async function chargerDonneesVitrine() {
-    try {
-        const [produits, texts, whatsapp, events] = await Promise.all([
-            chargerJson('/api/public/products'),
-            chargerJson('/api/public/site-texts'),
-            chargerJson('/api/public/whatsapp'),
-            chargerJson('/api/public/events')
-        ]);
-        const categories = await chargerJson('/api/public/categories').catch(() => []);
-
-        tousLesProduits = produits;
-        siteTextsCache = texts || {};
-        siteTextsCache.categories = Array.isArray(categories) ? categories : [];
-        afficherProduits(produits);
-        afficherEvenements(getDisplayEvents(events));
-        appliquerTextesSite(texts);
-        appliquerContacts(whatsapp);
-        renderCategoryFilters();
-        renderTrendTissues(produits);
-        mettreAJourPanier();
-        initEventCarousel();
-    } catch (error) {
-        const liste = document.getElementById('liste-produits');
-        if (liste) {
-            liste.innerHTML = '<p class="message-erreur">Impossible de charger les produits. <button type="button" onclick="chargerDonneesVitrine()">Reessayer</button></p>';
+        completed += 1;
+        if (completed === normalizedItems.length) {
+          res.json({ success: true, orderNumber: numeroCommande, total });
         }
-    }
-}
+      });
+    });
+  });
+});
 
-function appliquerTextesSite(texts) {
-    const heroTitle = document.getElementById('hero-title');
-    const heroSubtitle = document.getElementById('hero-subtitle');
-    const heroButton = document.getElementById('hero-button');
-    const heroBadge = document.getElementById('hero-badge');
+app.get('/api/orders', requireLogin, (req, res) => {
+  db.all('SELECT * FROM orders ORDER BY id DESC', [], (err, orders) => {
+    if (err) return res.status(500).json({ error: err.message });
+    db.all('SELECT * FROM order_items ORDER BY id ASC', [], (itemErr, items) => {
+      if (itemErr) return res.status(500).json({ error: itemErr.message });
+      const groupedItems = items.reduce((acc, item) => {
+        if (!acc[item.order_id]) acc[item.order_id] = [];
+        acc[item.order_id].push(item);
+        return acc;
+      }, {});
+      res.json(orders.map(order => ({ ...order, items: groupedItems[order.id] || [] })));
+    });
+  });
+});
 
-    if (heroTitle && texts.hero_title) heroTitle.textContent = texts.hero_title;
-    if (heroSubtitle && texts.hero_subtitle) heroSubtitle.textContent = texts.hero_subtitle;
-    if (heroButton && texts.button_text) heroButton.textContent = texts.button_text;
-    if (heroBadge && texts.hero_badge) heroBadge.textContent = texts.hero_badge;
-}
+app.patch('/api/orders/:id/status', requireLogin, (req, res) => {
+  const allowed = ['en_attente', 'a_verifier', 'confirme', 'preparee', 'expediee', 'livree', 'annulee'];
+  const { statut } = req.body;
+  if (!allowed.includes(statut)) return res.status(400).json({ error: 'Statut invalide.' });
 
-function appliquerContacts(whatsapp) {
-    const primaryLink = document.getElementById('contact-whatsapp');
-    const phoneLink = document.getElementById('contact-phone');
-    const socialLinks = document.getElementById('social-links');
-    const firstWhatsapp = Array.isArray(whatsapp) ? whatsapp[0] : null;
+  db.run('UPDATE orders SET statut = ? WHERE id = ?', [statut, req.params.id], function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ success: true, updated: this.changes });
+  });
+});
 
-    if (primaryLink && firstWhatsapp) {
-        const message = encodeURIComponent(firstWhatsapp.message || 'Bonjour, je souhaite commander.');
-        primaryLink.href = `https://wa.me/${firstWhatsapp.numero || '221774137575'}?text=${message}`;
-    }
+app.post('/api/orders/cleanup', requireLogin, (req, res) => {
+  const keepLast = Math.max(0, Number(req.body.keepLast || 0));
+  const olderThanDays = Math.max(0, Number(req.body.olderThanDays || 0));
 
-    if (phoneLink && firstWhatsapp) {
-        phoneLink.href = `tel:${firstWhatsapp.numero || '+221774137575'}`;
-        phoneLink.textContent = firstWhatsapp.numero || '+221 77 413 75 75';
-    }
-
-    if (socialLinks) {
-        socialLinks.querySelectorAll('a').forEach((link) => {
-            if (link.href.includes('tiktok') && firstWhatsapp?.tiktok) {
-                link.href = firstWhatsapp.tiktok;
-            }
+  const deleteByAge = () => {
+    if (!olderThanDays) return Promise.resolve({ deletedOrders: 0, deletedItems: 0 });
+    const cutoff = new Date(Date.now() - olderThanDays * 24 * 60 * 60 * 1000).toISOString();
+    return new Promise((resolve, reject) => {
+      db.all('SELECT id FROM orders WHERE created_at < ? ORDER BY id ASC', [cutoff], (err, rows) => {
+        if (err) return reject(err);
+        const ids = rows.map(row => row.id);
+        if (!ids.length) return resolve({ deletedOrders: 0, deletedItems: 0 });
+        const placeholders = ids.map(() => '?').join(',');
+        db.run(`DELETE FROM order_items WHERE order_id IN (${placeholders})`, ids, function(err2) {
+          if (err2) return reject(err2);
+          db.run(`DELETE FROM orders WHERE id IN (${placeholders})`, ids, function(err3) {
+            if (err3) return reject(err3);
+            resolve({ deletedOrders: rows.length, deletedItems: this.changes });
+          });
         });
-    }
-}
-
-function renderPriceBlock(product) {
-    const current = Number(product.prix || 0);
-    const previous = Number(product.prix_avant || 0);
-    const priceChange = product.priceChange || null;
-    const previousPrice = Number(priceChange?.oldPrice || previous || 0);
-    const diff = Number(priceChange?.changePercent || 0);
-    if (Number.isFinite(previousPrice) && previousPrice > 0 && previousPrice !== current) {
-        const label = priceChange?.changeType === 'increase' ? `+${diff}%` : `-${diff}%`;
-        return `
-            <div class="price-stack">
-                <strong class="price-current">${current} FCFA</strong>
-                <span class="price-previous">${previousPrice} FCFA</span>
-                <small class="price-change ${priceChange?.changeType === 'increase' ? 'increase' : 'decrease'}">${label}</small>
-            </div>
-        `;
-    }
-
-    return `<strong class="price-current">${current} FCFA</strong>`;
-}
-
-function afficherProduits(produits) {
-    const liste = document.getElementById('liste-produits');
-    const accueilListe = document.getElementById('produit-container');
-
-    if (liste) {
-        liste.innerHTML = produits.map(produit => `
-            <article class="card">
-                <div class="image-box">
-                    <img src="${produit.image}" alt="${produit.nom}">
-                </div>
-                <div class="card-content">
-                    <h3>${produit.nom}</h3>
-                    ${renderPriceBlock(produit)}
-                    <p>${produit.description || ''}</p>
-                    <button class="btn add-to-cart" type="button" data-product-id="${produit.id}">Ajouter au panier</button>
-                </div>
-            </article>
-        `).join('');
-    }
-
-    if (accueilListe) {
-        accueilListe.innerHTML = getSuggestedProducts(produits).map(produit => `
-            <article class="card">
-                <div class="image-box">
-                    <img src="${produit.image}" alt="${produit.nom}">
-                </div>
-                <div class="card-content">
-                    <h3>${produit.nom}</h3>
-                    ${renderPriceBlock(produit)}
-                    <button class="btn add-to-cart" type="button" data-product-id="${produit.id}">Ajouter au panier</button>
-                </div>
-            </article>
-        `).join('');
-    }
-}
-
-function splitCsv(value) {
-    return String(value || '')
-        .split(',')
-        .map(item => item.trim())
-        .filter(Boolean);
-}
-
-function getCatalogCategories() {
-    const categories = Array.isArray(siteTextsCache.categories) ? siteTextsCache.categories : [];
-    if (categories.length) {
-        return categories.filter(category => !category.parent_id);
-    }
-    const legacy = splitCsv(siteTextsCache.catalog_categories);
-    return legacy.length ? legacy.map(name => ({ name })) : [{ name: 'Sac' }, { name: 'Robe' }, { name: 'Tissu' }, { name: 'Collier' }, { name: 'Chaussure' }];
-}
-
-function getFeaturedCategories() {
-    const categories = Array.isArray(siteTextsCache.categories) ? siteTextsCache.categories : [];
-    if (categories.length) {
-        return categories.filter(category => !category.parent_id).slice(0, 3);
-    }
-    const legacy = splitCsv(siteTextsCache.featured_categories);
-    return legacy.length ? legacy.map(name => ({ name })) : [{ name: 'Sac' }, { name: 'Chaussure' }, { name: 'Collier' }];
-}
-
-function renderCategoryFilters() {
-    const container = document.getElementById('category-filters');
-    if (!container) return;
-    const categories = getCatalogCategories();
-    container.innerHTML = [
-        `<button type="button" onclick="filtrer('Tous')">${locales[getLocale()].filter_all || 'Tous'}</button>`,
-        ...categories.map(category => `<button type="button" onclick="filtrer('${category.name}')">${category.name}${String(category.name).endsWith('s') ? '' : 's'}</button>`)
-    ].join('');
-}
-
-function afficherEvenements(events) {
-    const grid = document.getElementById('announcement-grid');
-    const eventTrack = document.getElementById('events-track');
-
-    if (grid) {
-        grid.innerHTML = events.map(event => `
-            <article class="announcement-card">
-                <span class="announcement-tag">${event.accent}</span>
-                <strong>${event.titre}</strong>
-                <p>${event.description}</p>
-                <span class="announcement-meta">${event.date}</span>
-            </article>
-        `).join('');
-    }
-
-    if (eventTrack) {
-        eventTrack.innerHTML = events.map(event => `
-            <article class="event-card">
-                <img src="img/logo.jpeg" alt="${event.titre}">
-                <span class="announcement-tag">${event.accent}</span>
-                <h3>${event.titre}</h3>
-                <p>${event.description}</p>
-                <span class="announcement-meta">${event.date}</span>
-            </article>
-        `).join('');
-    }
-}
-
-function getCustomEvents() {
-    const raw = String(siteTextsCache.event_cards || '').trim();
-    if (!raw) return [];
-    try {
-        const parsed = JSON.parse(raw);
-        return Array.isArray(parsed) ? parsed : [];
-    } catch {
-        return [];
-    }
-}
-
-function defaultEvents() {
-    return [
-        {
-            titre: 'Nouvelle collection',
-            date: 'Chaque semaine',
-            description: 'Des arrivages sélectionnés de sacs, robes et chaussures sont publiés en priorité sur la page d accueil.',
-            accent: 'Collection',
-            image: ''
-        },
-        {
-            titre: 'Annonces live',
-            date: 'Avant chaque direct',
-            description: 'Les prochains lives sont mis en avant pour permettre aux clients de se préparer et poser leurs questions.',
-            accent: 'Live',
-            image: ''
-        },
-        {
-            titre: 'Offres WhatsApp',
-            date: 'Disponible maintenant',
-            description: 'Les promotions et la disponibilité des produits sont partagées en un clic vers WhatsApp.',
-            accent: 'Promo',
-            image: ''
-        },
-        {
-            titre: 'Commandes rapides',
-            date: '24h/24',
-            description: 'Le panier et les options de paiement sont optimisés pour finaliser une commande sans friction.',
-            accent: 'Commande',
-            image: ''
-        }
-    ];
-}
-
-function getDisplayEvents(fallbackEvents) {
-    const custom = getCustomEvents();
-    return custom.length ? custom : (fallbackEvents && fallbackEvents.length ? fallbackEvents : defaultEvents());
-}
-
-function rendreBlocLive(liveData) {
-    const liveTitle = document.getElementById('live-title');
-    const liveText = document.querySelector('.live-section [data-i18n="live_text"]');
-    const liveCard = document.querySelector('.live-section .live-card');
-    const liveVideo = document.querySelector('.live-section .live-video');
-    const liveActions = document.querySelector('.live-section .live-actions');
-
-    if (!liveCard || !liveVideo || !liveActions) return;
-
-    const isLive = liveData && (liveData.statut === 'on' || liveData.statut === 'online');
-    const liveLabel = isLive ? 'En direct maintenant' : 'Aucun live en cours';
-    const liveDescription = isLive
-        ? (liveData.message || 'Le direct est en cours. Cliquez pour le suivre sur TikTok.')
-        : (liveData.message || 'Revenez plus tard ou suivez-nous pour être averti du prochain direct.');
-
-    if (liveTitle) liveTitle.textContent = liveLabel;
-    if (liveText) liveText.textContent = liveDescription;
-
-    liveVideo.innerHTML = isLive
-        ? `
-            <span class="badge-live">EN DIRECT</span>
-            <iframe
-                src="${liveData.lien}"
-                title="Live Porokhane Sagnse VIP"
-                allowfullscreen>
-            </iframe>
-            <a class="btn btn-secondary" href="${liveData.lien}" target="_blank" rel="noopener noreferrer">Ouvrir le live TikTok</a>
-          `
-        : `
-            <span class="live-dot"></span>
-            <h3 data-i18n="live_offline_title">Le direct n a pas encore commence</h3>
-            <p data-i18n="live_offline_text">Quand le live sera actif, la video apparaitra ici.</p>
-          `;
-
-    liveActions.innerHTML = `
-        <h3 data-i18n="stay_informed">Rester informe</h3>
-        <a class="btn" href="https://www.tiktok.com/@prokhanesagnsevip?is_from_webapp=1&sender_device=pc" target="_blank" rel="noopener noreferrer" data-i18n="follow_tiktok">Suivre sur TikTok</a>
-        <a class="btn btn-secondary" href="https://wa.me/221774137575?text=Je%20souhaite%20etre%20informe%20du%20prochain%20live" target="_blank" rel="noopener noreferrer" data-i18n="notify_whatsapp">Etre averti sur WhatsApp</a>
-    `;
-}
-
-function filtrer(categorie) {
-    if (categorie === 'Tous') {
-        afficherProduits(tousLesProduits);
-        return;
-    }
-
-    afficherProduits(tousLesProduits.filter(produit => produit.categorie === categorie));
-}
-
-function getSuggestedProducts(products) {
-    const featured = getFeaturedCategories().map(item => String(item.name || '').toLowerCase());
-    const matched = products.filter(product => featured.includes(String(product.categorie || '').toLowerCase()));
-    const fallback = products.filter(product => !matched.includes(product));
-    return [...matched, ...fallback].slice(0, 4);
-}
-
-function renderTrendTissues(products) {
-    const container = document.getElementById('tissue-trend-container');
-    if (!container) return;
-    const tissues = products.filter(product => String(product.product_type || '').toLowerCase() === 'tissue').slice(0, 4);
-    container.innerHTML = tissues.length ? tissues.map(product => `
-        <article class="trend-card">
-            <img src="${product.image}" alt="${product.nom}">
-            <div class="trend-card-body">
-                <span class="announcement-tag">Tissu tendance</span>
-                <h3>${product.nom}</h3>
-                <p>${product.description || ''}</p>
-                ${renderPriceBlock(product)}
-            </div>
-        </article>
-    `).join('') : '<p class="message-erreur">Aucun tissu tendance disponible pour le moment.</p>';
-}
-
-async function chargerInstructionsPaiement() {
-    const info = document.getElementById('payment-info');
-    if (!info) return;
-
-    try {
-        const data = await chargerJson('/api/public/payment-instructions');
-        info.innerHTML = `
-            <strong>Payez via Wave ou Orange Money</strong>
-            <p>Choisissez le service de paiement, puis utilisez le numéro correspondant affiché ci-dessous.</p>
-            <p>Wave : ${data.waveNumber || '+221771509100'} / ${data.orangeMoneyNumber || '+221774137575'}</p>
-            <p>Orange Money : ${data.waveNumber || '+221771509100'} / ${data.orangeMoneyNumber || '+221774137575'}</p>
-            <p>Beneficiaire : ${data.beneficiaire || 'Diary Diop'}</p>
-            <p>${data.instructions || 'Prenez une capture d ecran de confirmation puis televersez-la.'}</p>
-            <div class="payment-actions">
-                <a class="btn btn-secondary" href="tel:${data.waveNumber || '+221771509100'}">Payer avec au 771509100</a>
-                <a class="btn btn-secondary" href="tel:${data.orangeMoneyNumber || '+221774137575'}">Payer avec au 774137575</a>
-            </div>
-        `;
-    } catch (error) {
-        info.innerHTML = '<p>Impossible de charger les instructions de paiement.</p>';
-    }
-}
-
-async function chargerLiveAccueil() {
-    try {
-        const liveData = await chargerJson('/api/public/live');
-        rendreBlocLive(liveData || {});
-    } catch (error) {
-        rendreBlocLive({});
-    }
-}
-
-function setupPaymentChoice() {
-    const modeButtons = document.querySelectorAll('[data-payment-mode]');
-    const choice = document.getElementById('payment-number-choice');
-    const question = document.getElementById('payment-number-question');
-    const note = document.getElementById('payment-number-note');
-    const waveLink = document.getElementById('payment-number-wave');
-    const orangeLink = document.getElementById('payment-number-orange');
-    if (!modeButtons.length || !choice || !question || !note || !waveLink || !orangeLink) return;
-
-    const openChoice = (mode) => {
-        choice.hidden = false;
-        if (mode === 'wave') {
-            question.textContent = 'Mode choisi : Wave';
-            note.textContent = 'Wave peut utiliser les deux numéros ci-dessous.';
-        } else {
-            question.textContent = 'Mode choisi : Orange Money';
-            note.textContent = 'Orange Money peut utiliser les deux numéros ci-dessous.';
-        }
-        waveLink.textContent = 'Payer au 771509100';
-        orangeLink.textContent = 'Payer au 774137575';
-        choice.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    };
-
-    modeButtons.forEach((button) => {
-        button.addEventListener('click', () => openChoice(button.dataset.paymentMode));
+      });
     });
-}
+  };
 
-async function envoyerCommande(event) {
-    event.preventDefault();
-    const form = event.currentTarget;
-    const fileInput = form.querySelector('input[name="waveProof"]');
-    const phoneInput = form.querySelector('input[name="telephone"]');
-    const paymentModeInput = form.querySelector('select[name="paymentMode"]');
-    const orderMessage = document.getElementById('order-message');
-
-    if (!panier.length) {
-        orderMessage.dataset.hasUserMessage = '1';
-        orderMessage.dataset.state = 'error';
-        orderMessage.textContent = locales[getLocale()].order_missing_panier;
-        return;
-    }
-
-    if (!fileInput?.files?.[0]) {
-        orderMessage.dataset.hasUserMessage = '1';
-        orderMessage.dataset.state = 'error';
-        orderMessage.textContent = locales[getLocale()].order_missing_wave;
-        return;
-    }
-
-    const rawPhone = String(phoneInput?.value || '').trim();
-    const digitsOnly = rawPhone.replace(/\D/g, '');
-    const paymentMode = String(paymentModeInput?.value || '').trim();
-    if (digitsOnly.length < 8 || digitsOnly.length > 15) {
-        orderMessage.dataset.hasUserMessage = '1';
-        orderMessage.dataset.state = 'error';
-        orderMessage.textContent = 'Le numero client doit contenir entre 8 et 15 chiffres.';
-        return;
-    }
-
-    if (!paymentMode) {
-        orderMessage.dataset.hasUserMessage = '1';
-        orderMessage.dataset.state = 'error';
-        orderMessage.textContent = 'Choisissez un mode de paiement.';
-        return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = async () => {
-        const payload = Object.fromEntries(new FormData(form).entries());
-        payload.telephone = digitsOnly;
-        payload.items = panier.map(item => ({ nom: item.nom, quantite: item.quantite, prix: item.prix }));
-        payload.waveProof = reader.result;
-        payload.paymentMode = paymentMode;
-
-        const response = await fetch('/api/orders', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+  const deleteByKeepLast = () => {
+    if (!keepLast) return Promise.resolve({ deletedOrders: 0, deletedItems: 0 });
+    return new Promise((resolve, reject) => {
+      db.all('SELECT id FROM orders ORDER BY id DESC LIMIT -1 OFFSET ?', [keepLast], (err, rows) => {
+        if (err) return reject(err);
+        const ids = rows.map(row => row.id);
+        if (!ids.length) return resolve({ deletedOrders: 0, deletedItems: 0 });
+        const placeholders = ids.map(() => '?').join(',');
+        db.run(`DELETE FROM order_items WHERE order_id IN (${placeholders})`, ids, function(err2) {
+          if (err2) return reject(err2);
+          db.run(`DELETE FROM orders WHERE id IN (${placeholders})`, ids, function(err3) {
+            if (err3) return reject(err3);
+            resolve({ deletedOrders: rows.length, deletedItems: this.changes });
+          });
         });
-        const result = await response.json();
-
-        if (!response.ok) {
-            orderMessage.dataset.hasUserMessage = '1';
-            orderMessage.dataset.state = 'error';
-            orderMessage.textContent = result.error || locales[getLocale()].order_submit_error;
-            return;
-        }
-
-        orderMessage.dataset.hasUserMessage = '1';
-        orderMessage.dataset.state = 'success';
-        orderMessage.textContent = `${locales[getLocale()].order_success_commercial} Numéro de commande : ${result.orderNumber}. ${locales[getLocale()].order_success_followup}`;
-        const targetNumber = paymentMode === 'orange' ? '221774137575' : '221771509100';
-        const waMessage = [
-            'Bonjour, nouvelle commande.',
-            `Mode de paiement : ${paymentMode === 'orange' ? 'Orange Money' : 'Wave'}.`,
-            `Commande : ${result.orderNumber}.`,
-            `Client : ${payload.clientNom || ''}.`,
-            `Telephone : ${payload.telephone}.`,
-            `Adresse : ${payload.adresse || ''}.`,
-            `Ville : ${payload.ville || ''}.`,
-            `Total : ${result.total} FCFA.`
-        ].join('\n');
-        window.open(`https://wa.me/${targetNumber}?text=${encodeURIComponent(waMessage)}`, '_blank', 'noopener,noreferrer');
-        clearPanier();
-        form.reset();
-    };
-
-    reader.readAsDataURL(fileInput.files[0]);
-}
-
-function initEventCarousel() {
-    const viewport = document.getElementById('events-viewport');
-    const track = document.getElementById('events-track');
-    const prev = document.querySelector('.events-btn.prev');
-    const next = document.querySelector('.events-btn.next');
-
-    if (!viewport || !track || !prev || !next) return;
-
-    const originalCards = Array.from(track.children);
-    if (!originalCards.length) return;
-    originalCards.forEach(card => track.appendChild(card.cloneNode(true)));
-
-    let loopWidth = track.scrollWidth / 2;
-    const recompute = () => { loopWidth = track.scrollWidth / 2; };
-    window.addEventListener('resize', recompute);
-    window.addEventListener('load', recompute);
-
-    const PIXELS_PER_MS = 0.025;
-    let x = 0;
-    let isPaused = false;
-    let rafId = null;
-    let lastTime = null;
-    let pauseTimeout = null;
-
-    function stepRAF(timestamp) {
-        if (lastTime === null) lastTime = timestamp;
-        const dt = timestamp - lastTime;
-        lastTime = timestamp;
-
-        if (!isPaused) {
-            x += dt * PIXELS_PER_MS;
-            if (x >= loopWidth) x -= loopWidth;
-            track.style.transform = `translateX(-${x}px)`;
-        }
-
-        rafId = requestAnimationFrame(stepRAF);
-    }
-
-    function start() {
-        if (rafId) cancelAnimationFrame(rafId);
-        lastTime = null;
-        rafId = requestAnimationFrame(stepRAF);
-    }
-
-    function stop() {
-        if (rafId) cancelAnimationFrame(rafId);
-        rafId = null;
-        lastTime = null;
-    }
-
-    function pauseTemporarily() {
-        isPaused = true;
-        if (pauseTimeout) clearTimeout(pauseTimeout);
-        pauseTimeout = setTimeout(() => { isPaused = false; }, 1200);
-    }
-
-    const chunk = () => Math.floor(viewport.clientWidth * 0.8);
-    prev.addEventListener('click', () => {
-        x = Math.max(0, x - chunk());
-        track.style.transform = `translateX(-${x}px)`;
-        pauseTemporarily();
+      });
     });
-    next.addEventListener('click', () => {
-        x += chunk();
-        if (x >= loopWidth) x -= loopWidth;
-        track.style.transform = `translateX(-${x}px)`;
-        pauseTemporarily();
-    });
+  };
 
-    viewport.addEventListener('keydown', (e) => {
-        if (e.key === 'ArrowRight') next.click();
-        if (e.key === 'ArrowLeft') prev.click();
-    });
-
-    viewport.addEventListener('mouseenter', () => { isPaused = true; });
-    viewport.addEventListener('mouseleave', () => { isPaused = false; });
-    viewport.addEventListener('focusin', () => { isPaused = true; });
-    viewport.addEventListener('focusout', () => { isPaused = false; });
-
-    document.addEventListener('visibilitychange', () => {
-        if (document.hidden) {
-            stop();
-        } else {
-            start();
-        }
-    });
-
-    start();
-    window.addEventListener('beforeunload', stop);
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    chargerDonneesVitrine();
-    chargerInstructionsPaiement();
-    chargerLiveAccueil();
-    applyLocale();
-    setupPaymentChoice();
-
-    document.addEventListener('click', (event) => {
-        const target = event.target;
-
-        if (target.classList.contains('add-to-cart')) {
-            const productId = Number(target.dataset.productId);
-            const found = tousLesProduits.find(item => item.id === productId);
-            if (found) ajouterAuPanier(found);
-        }
-
-        if (target.dataset.action === 'minus') modifierPanier(Number(target.dataset.id), -1);
-        if (target.dataset.action === 'plus') modifierPanier(Number(target.dataset.id), 1);
-        if (target.dataset.action === 'remove') modifierPanier(Number(target.dataset.id), -999);
-
-        if (target.id === 'lang-toggle') {
-            const nextLang = getLocale() === 'fr' ? 'wo' : 'fr';
-            setLocale(nextLang);
-        }
-    });
-
-    const clearCartButton = document.getElementById('clear-cart');
-    if (clearCartButton) clearCartButton.addEventListener('click', clearPanier);
-
-    const orderForm = document.getElementById('order-form');
-    if (orderForm) orderForm.addEventListener('submit', envoyerCommande);
+  deleteByAge()
+    .then(() => deleteByKeepLast())
+    .then((result) => res.json({ success: true, ...result }))
+    .catch((err) => res.status(500).json({ error: err.message }));
 });
+
+app.get('/admin/login.html', (req, res) => res.sendFile(path.join(__dirname, 'admin', 'login.html')));
+app.get('/admin/dashboard.html', requireLogin, (req, res) => res.sendFile(path.join(__dirname, 'admin', 'dashboard.html')));
+app.get('/admin/*', requireLogin, (req, res) => {
+  res.sendFile(path.join(__dirname, 'admin', req.path.replace('/admin/', '')));
+});
+
+if (require.main === module) {
+  cleanupOldOrderProofs();
+  setInterval(() => cleanupOldOrderProofs(), 1000 * 60 * 60 * 6);
+  app.listen(port, () => console.log(`Server listening on http://localhost:${port}`));
+}
+
+module.exports = { app, db, hashPassword, verifyPassword, validateProductPayload, resolveDatabasePath };

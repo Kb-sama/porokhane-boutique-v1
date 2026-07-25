@@ -73,7 +73,7 @@ function resolveDatabasePath(preferredPath, fallbackPath) {
 // ROUTE POUR LE SITEMAP (ADAPTÉ POUR RENDER)
 // ======================================================================
 app.get('/sitemap.xml', (req, res) => {
-  // ⚠️ REMPLACEZ CETTE LIGNE PAR VOTRE VRAI LIEN RENDER (ex: https://porokhane.onrender.com)
+  // Mettez exactement l'URL de votre site visible dans la Search Console
   const baseUrl = 'https://porokhane-boutique-v1.onrender.com'; 
 
   const staticPages = [
@@ -81,13 +81,13 @@ app.get('/sitemap.xml', (req, res) => {
     '/accueil.html',
     '/produit.html',
     '/contacte.html',
-    '/live.html'
+    '/live.html',
+    '/politique-confidentialite.html'
   ];
 
   let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
   xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
 
-  // 1. Ajout des pages fixes
   staticPages.forEach(page => {
     xml += '  <url>\n';
     xml += `    <loc>${baseUrl}${page}</loc>\n`;
@@ -96,7 +96,6 @@ app.get('/sitemap.xml', (req, res) => {
     xml += '  </url>\n';
   });
 
-  // 2. Ajout dynamique des produits depuis la base de données
   db.all('SELECT id FROM products WHERE disponible = 1', [], (err, rows) => {
     if (!err && rows) {
       rows.forEach(product => {
@@ -109,7 +108,8 @@ app.get('/sitemap.xml', (req, res) => {
     }
 
     xml += '</urlset>';
-
+    
+    // Forcer l'en-tête XML pour que Google comprenne que c'est du XML et non du HTML
     res.header('Content-Type', 'application/xml');
     res.send(xml);
   });

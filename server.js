@@ -74,7 +74,7 @@ function resolveDatabasePath(preferredPath, fallbackPath) {
 // ======================================================================
 app.get('/sitemap.xml', (req, res) => {
   // ⚠️ REMPLACEZ CETTE LIGNE PAR VOTRE VRAI LIEN RENDER (ex: https://porokhane.onrender.com)
-  const baseUrl = 'https://votre-app.onrender.com'; 
+  const baseUrl = 'https://porokhane-boutique-v1.onrender.com'; 
 
   const staticPages = [
     '',

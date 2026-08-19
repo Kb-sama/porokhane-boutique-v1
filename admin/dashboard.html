@@ -16,6 +16,7 @@
                 <a href="#product-models">Modèles</a>
                 <a href="#product-relations">Liaisons</a>
                 <a href="#site-texts">Textes</a>
+                <a href="#shop-settings">Boutique</a>
                 <a href="#live">Live</a>
                 <button id="logout-button">Déconnexion</button>
             </nav>
@@ -31,6 +32,16 @@
                     <div class="card"><span>Commandes</span><strong id="count-orders">0</strong></div>
                     <div class="card"><span>Live</span><strong id="live-status">Hors ligne</strong></div>
                 </div>
+            </section>
+            <section id="shop-settings" class="admin-section shop-settings">
+                <div>
+                    <h2>État de la boutique</h2>
+                    <p id="shop-status">Chargement...</p>
+                </div>
+                <label class="switch" title="Activer ou désactiver la page d'ouverture prochaine">
+                    <input type="checkbox" id="coming-soon-toggle" aria-label="Activer le mode ouverture prochaine">
+                    <span class="slider"></span>
+                </label>
             </section>
             <section id="products" class="admin-section">
                 <h2>Produits</h2>

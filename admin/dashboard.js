@@ -50,11 +50,52 @@ const cleanupOrdersButton = document.getElementById('cleanup-orders');
 const cleanupKeepLast = document.getElementById('cleanup-keep-last');
 const cleanupOlderThan = document.getElementById('cleanup-older-than');
 const adminMain = document.querySelector('.admin-main');
+const comingSoonToggle = document.getElementById('coming-soon-toggle');
+const shopStatus = document.getElementById('shop-status');
 let cameraStream = null;
 let cachedProducts = [];
 let eventCards = [];
 let categoriesCache = [];
 let categorySearchTerm = '';
+
+function updateShopStatus(enabled) {
+    if (!shopStatus) return;
+    shopStatus.textContent = enabled
+        ? 'Boutique en attente : les visiteurs voient la page d’ouverture prochaine.'
+        : 'Boutique ouverte : les visiteurs voient le site normalement.';
+    shopStatus.dataset.state = enabled ? 'coming-soon' : 'open';
+}
+
+async function fetchShopSettings() {
+    if (!comingSoonToggle) return;
+    const response = await fetch('/api/admin/site-settings');
+    if (!response.ok) return;
+    const settings = await response.json();
+    comingSoonToggle.checked = settings.comingSoon === true;
+    updateShopStatus(comingSoonToggle.checked);
+}
+
+if (comingSoonToggle) {
+    comingSoonToggle.addEventListener('change', async () => {
+        comingSoonToggle.disabled = true;
+        const response = await fetch('/api/admin/coming-soon', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ enabled: comingSoonToggle.checked })
+        });
+        if (response.ok) {
+            const settings = await response.json();
+            comingSoonToggle.checked = settings.comingSoon === true;
+            updateShopStatus(comingSoonToggle.checked);
+            showToast('État de la boutique mis à jour');
+        } else {
+            comingSoonToggle.checked = !comingSoonToggle.checked;
+            updateShopStatus(comingSoonToggle.checked);
+            showToast('Impossible de modifier l’état de la boutique');
+        }
+        comingSoonToggle.disabled = false;
+    });
+}
 
 function formatProductPrice(product) {
     const current = Number(product.prix || 0);
@@ -902,6 +943,7 @@ ordersTable.addEventListener('change', async (event) => {
 });
 
 window.addEventListener('DOMContentLoaded', () => {
+    fetchShopSettings();
     fetchProducts();
     fetchSiteTexts();
     fetchLive();

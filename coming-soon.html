@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Porokhane Sagnse VIP ouvre bientôt sa boutique en ligne.">
+    <title>Notre boutique arrive bientôt | Porokhane Sagnse VIP</title>
+    <style>
+        :root {
+            color-scheme: dark;
+            --background: #11100f;
+            --surface: #1c1917;
+            --surface-soft: rgba(255, 255, 255, 0.07);
+            --text: #fffaf5;
+            --muted: #c7bdb5;
+            --accent: #f0a46b;
+            --green: #25d366;
+            --border: rgba(255, 255, 255, 0.14);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            min-height: 100vh;
+            margin: 0;
+            padding: 28px;
+            display: grid;
+            place-items: center;
+            color: var(--text);
+            background: radial-gradient(circle at 50% 0%, #493329 0, var(--background) 55%);
+            font-family: Georgia, 'Times New Roman', serif;
+        }
+
+        main {
+            width: min(680px, 100%);
+            padding: clamp(28px, 7vw, 64px);
+            text-align: center;
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.025));
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.34);
+        }
+
+        .logo {
+            width: 108px;
+            height: 108px;
+            margin: 0 auto 26px;
+            object-fit: cover;
+            border: 1px solid var(--border);
+            border-radius: 24px;
+        }
+
+        .badge {
+            display: inline-block;
+            margin-bottom: 22px;
+            padding: 8px 14px;
+            color: var(--accent);
+            border: 1px solid rgba(240, 164, 107, 0.45);
+            border-radius: 999px;
+            font: 700 0.78rem/1.2 Arial, sans-serif;
+            letter-spacing: 0.12em;
+        }
+
+        h1 {
+            max-width: 580px;
+            margin: 0 auto 20px;
+            font-size: clamp(2.8rem, 8vw, 5.6rem);
+            line-height: 0.96;
+            letter-spacing: 0;
+        }
+
+        .description {
+            max-width: 520px;
+            margin: 0 auto 34px;
+            color: var(--muted);
+            font: 1.08rem/1.65 Arial, sans-serif;
+        }
+
+        .buttons {
+            display: grid;
+            gap: 12px;
+            max-width: 440px;
+            margin: 0 auto;
+        }
+
+        .button {
+            min-height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 14px 18px;
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            text-decoration: none;
+            font: 700 0.98rem/1.2 Arial, sans-serif;
+            transition: transform 180ms ease, filter 180ms ease;
+        }
+
+        .button:hover,
+        .button:focus-visible {
+            transform: translateY(-2px);
+            filter: brightness(1.08);
+        }
+
+        .whatsapp { color: #071b0d; background: var(--green); border-color: transparent; }
+        .instagram { background: linear-gradient(90deg, #833ab4, #fd1d1d, #fcb045); border-color: transparent; }
+        .tiktok { color: #111; background: #fff; border-color: transparent; }
+        .phone { background: var(--surface-soft); }
+
+        footer {
+            margin-top: 34px;
+            color: #968b83;
+            font: 0.82rem/1.4 Arial, sans-serif;
+        }
+
+        @media (max-width: 520px) {
+            body { padding: 14px; }
+            main { border-radius: 18px; }
+            .description { font-size: 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <img class="logo" src="/img/logo.jpeg" alt="Logo Porokhane Sagnse VIP">
+        <div class="badge">OUVERTURE PROCHAINE</div>
+        <h1>Quelque chose de nouveau arrive.</h1>
+        <p class="description">
+            Notre boutique en ligne est actuellement en préparation.<br>
+            Contactez-nous directement ou suivez-nous sur nos réseaux sociaux.
+        </p>
+        <div class="buttons">
+            <a class="button whatsapp" href="https://wa.me/221774137575?text=Bonjour%2C%20je%20viens%20depuis%20votre%20site." target="_blank" rel="noopener noreferrer">Discuter avec nous sur WhatsApp</a>
+            <a class="button phone" href="tel:+221774137575">Appeler le +221 77 413 75 75</a>
+            <a class="button instagram" href="https://www.instagram.com/porokhane_sagnese_vip/?igsh=dDR5eWNicXBvd3di" target="_blank" rel="noopener noreferrer">Suivez-nous sur Instagram</a>
+            <a class="button tiktok" href="https://www.tiktok.com/@prokhanesagnsevip?is_from_webapp=1&amp;sender_device=pc" target="_blank" rel="noopener noreferrer">Suivez-nous sur TikTok</a>
+        </div>
+        <footer>&copy; 2026 Porokhane Sagnse VIP - Dakar, Sénégal</footer>
+    </main>
+</body>
+</html>

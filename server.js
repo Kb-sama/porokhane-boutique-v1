@@ -26,6 +26,7 @@ const tiktokUrl = process.env.TIKTOK_URL || 'https://www.tiktok.com/@prokhanesag
 const instagramUrl = process.env.INSTAGRAM_URL || 'https://www.instagram.com/porokhane_sagnese_vip?igsh=dDR5eWNicXBvd3di';
 const orderProofDir = path.join(__dirname, 'uploads', 'orders');
 const orderProofRetentionDays = Number(process.env.ORDER_PROOF_RETENTION_DAYS || 30);
+const siteSettingsFile = path.join(__dirname, 'data', 'site-settings.json');
 const isProduction = process.env.NODE_ENV === 'production';
 
 app.use(bodyParser.json({ limit: '10mb' }));
@@ -42,6 +43,32 @@ app.use(session({
     maxAge: 1000 * 60 * 60 * 8
   }
 }));
+
+function getSiteSettings() {
+  try {
+    const settings = JSON.parse(fs.readFileSync(siteSettingsFile, 'utf8'));
+    return { comingSoon: settings.comingSoon === true };
+  } catch {
+    return { comingSoon: false };
+  }
+}
+
+function saveSiteSettings(settings) {
+  fs.mkdirSync(path.dirname(siteSettingsFile), { recursive: true });
+  fs.writeFileSync(siteSettingsFile, JSON.stringify({ comingSoon: settings.comingSoon === true }, null, 2));
+}
+
+app.use((req, res, next) => {
+  const allowedDuringComingSoon = req.path === '/coming-soon.html'
+    || req.path.startsWith('/img/')
+    || req.path.startsWith('/admin')
+    || req.path.startsWith('/api/admin')
+    || req.path === '/api/login'
+    || req.path === '/api/logout';
+
+  if (!getSiteSettings().comingSoon || allowedDuringComingSoon) return next();
+  return res.sendFile(path.join(__dirname, 'coming-soon.html'));
+});
 
 function resolveDatabasePath(preferredPath, fallbackPath) {
   const candidates = [preferredPath, fallbackPath];
@@ -124,6 +151,7 @@ app.get('/produit.html', (req, res) => res.sendFile(path.join(__dirname, 'produi
 app.get('/contacte.html', (req, res) => res.sendFile(path.join(__dirname, 'contacte.html')));
 app.get('/live.html', (req, res) => res.sendFile(path.join(__dirname, 'live.html')));
 app.get('/politique-confidentialite.html', (req, res) => res.sendFile(path.join(__dirname, 'politique-confidentialite.html')));
+app.get('/coming-soon.html', (req, res) => res.sendFile(path.join(__dirname, 'coming-soon.html')));
 app.get('/style.css', (req, res) => res.sendFile(path.join(__dirname, 'style.css')));
 app.get('/script.js', (req, res) => res.sendFile(path.join(__dirname, 'script.js')));
 app.get('/produit-client.js', (req, res) => res.sendFile(path.join(__dirname, 'produit-client.js')));
@@ -374,6 +402,16 @@ function requireLogin(req, res, next) {
   }
   return res.status(401).json({ error: 'Non authentifié' });
 }
+
+app.get('/api/admin/site-settings', requireLogin, (req, res) => {
+  res.json(getSiteSettings());
+});
+
+app.post('/api/admin/coming-soon', requireLogin, (req, res) => {
+  const comingSoon = req.body.enabled === true || req.body.enabled === 'true';
+  saveSiteSettings({ comingSoon });
+  res.json({ success: true, comingSoon });
+});
 
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,

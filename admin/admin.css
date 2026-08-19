@@ -178,6 +178,72 @@ button#logout-button:hover {
     font-size: 1.6rem;
 }
 
+.shop-settings {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.shop-settings h2 {
+    margin-bottom: 8px;
+}
+
+.shop-settings p {
+    color: #6f5b53;
+}
+
+.shop-settings p[data-state="coming-soon"] {
+    color: #b13a1a;
+}
+
+.shop-settings p[data-state="open"] {
+    color: #1f7a4d;
+}
+
+.switch {
+    position: relative;
+    flex: 0 0 auto;
+    width: 58px;
+    height: 32px;
+}
+
+.switch input {
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+}
+
+.slider {
+    position: absolute;
+    inset: 0;
+    cursor: pointer;
+    background: #d8cbc2;
+    border-radius: 999px;
+    transition: background 180ms ease;
+}
+
+.slider::before {
+    position: absolute;
+    content: '';
+    width: 24px;
+    height: 24px;
+    left: 4px;
+    top: 4px;
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 0 2px 6px rgba(43, 31, 26, 0.2);
+    transition: transform 180ms ease;
+}
+
+.switch input:checked + .slider {
+    background: #1f7a4d;
+}
+
+.switch input:checked + .slider::before {
+    transform: translateX(26px);
+}
+
 .dashboard-cards {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));

@@ -50,50 +50,68 @@ const cleanupOrdersButton = document.getElementById('cleanup-orders');
 const cleanupKeepLast = document.getElementById('cleanup-keep-last');
 const cleanupOlderThan = document.getElementById('cleanup-older-than');
 const adminMain = document.querySelector('.admin-main');
-const comingSoonToggle = document.getElementById('coming-soon-toggle');
+const maintenanceToggle = document.getElementById('maintenance-toggle');
 const shopStatus = document.getElementById('shop-status');
+const previewStoreButton = document.getElementById('preview-store-button');
 let cameraStream = null;
 let cachedProducts = [];
 let eventCards = [];
 let categoriesCache = [];
 let categorySearchTerm = '';
 
-function updateShopStatus(enabled) {
+function updateShopStatus(status) {
     if (!shopStatus) return;
-    shopStatus.textContent = enabled
-        ? 'Boutique en attente : les visiteurs voient la page d’ouverture prochaine.'
-        : 'Boutique ouverte : les visiteurs voient le site normalement.';
-    shopStatus.dataset.state = enabled ? 'coming-soon' : 'open';
+    const maintenance = status === 'maintenance';
+    shopStatus.textContent = maintenance
+        ? 'Boutique en maintenance : les visiteurs voient la page d’ouverture prochaine.'
+        : 'Boutique publique : les visiteurs peuvent accéder au site.';
+    shopStatus.dataset.state = maintenance ? 'coming-soon' : 'open';
 }
 
 async function fetchShopSettings() {
-    if (!comingSoonToggle) return;
+    if (!maintenanceToggle) return;
     const response = await fetch('/api/admin/site-settings');
     if (!response.ok) return;
     const settings = await response.json();
-    comingSoonToggle.checked = settings.comingSoon === true;
-    updateShopStatus(comingSoonToggle.checked);
+    maintenanceToggle.checked = settings.shopStatus === 'maintenance';
+    updateShopStatus(settings.shopStatus);
 }
 
-if (comingSoonToggle) {
-    comingSoonToggle.addEventListener('change', async () => {
-        comingSoonToggle.disabled = true;
-        const response = await fetch('/api/admin/coming-soon', {
+if (maintenanceToggle) {
+    maintenanceToggle.addEventListener('change', async () => {
+        maintenanceToggle.disabled = true;
+        const status = maintenanceToggle.checked ? 'maintenance' : 'open';
+        const response = await fetch('/api/admin/shop-status', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ enabled: comingSoonToggle.checked })
+            body: JSON.stringify({ status })
         });
         if (response.ok) {
-            const settings = await response.json();
-            comingSoonToggle.checked = settings.comingSoon === true;
-            updateShopStatus(comingSoonToggle.checked);
+            const result = await response.json();
+            maintenanceToggle.checked = result.shopStatus === 'maintenance';
+            updateShopStatus(result.shopStatus);
             showToast('État de la boutique mis à jour');
         } else {
-            comingSoonToggle.checked = !comingSoonToggle.checked;
-            updateShopStatus(comingSoonToggle.checked);
+            maintenanceToggle.checked = !maintenanceToggle.checked;
+            updateShopStatus(maintenanceToggle.checked ? 'maintenance' : 'open');
             showToast('Impossible de modifier l’état de la boutique');
         }
-        comingSoonToggle.disabled = false;
+        maintenanceToggle.disabled = false;
+    });
+}
+
+if (previewStoreButton) {
+    previewStoreButton.addEventListener('click', async () => {
+        const previewWindow = window.open('about:blank', '_blank');
+        try {
+            const response = await fetch('/api/admin/preview/start', { method: 'POST' });
+            if (!response.ok) throw new Error('preview request failed');
+            if (previewWindow) previewWindow.location.href = '/';
+            else window.location.href = '/';
+        } catch {
+            if (previewWindow) previewWindow.close();
+            showToast('Impossible d’ouvrir l’aperçu');
+        }
     });
 }
 

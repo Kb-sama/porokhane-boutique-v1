@@ -201,6 +201,12 @@ button#logout-button:hover {
     color: #1f7a4d;
 }
 
+.shop-settings-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
 .switch {
     position: relative;
     flex: 0 0 auto;

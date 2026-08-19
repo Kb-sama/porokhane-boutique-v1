@@ -126,6 +126,7 @@ app.get('/live.html', (req, res) => res.sendFile(path.join(__dirname, 'live.html
 app.get('/politique-confidentialite.html', (req, res) => res.sendFile(path.join(__dirname, 'politique-confidentialite.html')));
 app.get('/style.css', (req, res) => res.sendFile(path.join(__dirname, 'style.css')));
 app.get('/script.js', (req, res) => res.sendFile(path.join(__dirname, 'script.js')));
+app.get('/produit-client.js', (req, res) => res.sendFile(path.join(__dirname, 'produit-client.js')));
 app.get('/live.js', (req, res) => res.sendFile(path.join(__dirname, 'live.js')));
 app.get('/admin/admin.css', (req, res) => res.sendFile(path.join(__dirname, 'admin', 'admin.css')));
 app.get('/admin/login.js', (req, res) => res.sendFile(path.join(__dirname, 'admin', 'login.js')));

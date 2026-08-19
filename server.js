@@ -62,10 +62,25 @@ function getSiteSettings() {
 }
 
 function saveSiteSettings(settings) {
-  fs.mkdirSync(path.dirname(siteSettingsFile), { recursive: true });
-  fs.writeFileSync(siteSettingsFile, JSON.stringify({
+  const serializedSettings = JSON.stringify({
     shopStatus: settings.shopStatus === 'maintenance' ? 'maintenance' : 'open'
-  }, null, 2));
+  }, null, 2);
+  const paths = siteSettingsFile === bundledSiteSettingsFile
+    ? [siteSettingsFile]
+    : [siteSettingsFile, bundledSiteSettingsFile];
+  let lastError;
+
+  for (const settingsPath of paths) {
+    try {
+      fs.mkdirSync(path.dirname(settingsPath), { recursive: true });
+      fs.writeFileSync(settingsPath, serializedSettings, 'utf8');
+      return;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError || new Error('Impossible d’enregistrer l’état de la boutique');
 }
 
 function normalizeShopStatusValue(payload = {}) {
@@ -447,8 +462,13 @@ app.post('/api/admin/shop-status', requireLogin, (req, res) => {
     return res.status(400).json({ success: false, error: 'État de boutique invalide' });
   }
 
-  saveSiteSettings({ shopStatus: status });
-  return res.json({ success: true, shopStatus: status, status });
+  try {
+    saveSiteSettings({ shopStatus: status });
+    return res.json({ success: true, shopStatus: status, status });
+  } catch (error) {
+    console.error('Unable to save shop status:', error);
+    return res.status(500).json({ success: false, error: 'Impossible d’enregistrer l’état de la boutique' });
+  }
 });
 
 app.post('/api/admin/preview/start', requireLogin, (req, res) => {

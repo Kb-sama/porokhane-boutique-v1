@@ -93,9 +93,16 @@ if (maintenanceToggle) {
             updateShopStatus(nextStatus);
             showToast('État de la boutique mis à jour');
         } else {
+            let errorMessage = 'Impossible de modifier l’état de la boutique';
+            try {
+                const result = await response.json();
+                errorMessage = result.error || errorMessage;
+            } catch {
+                // Keep the default message when the server response is not JSON.
+            }
             maintenanceToggle.checked = !maintenanceToggle.checked;
             updateShopStatus(maintenanceToggle.checked ? 'maintenance' : 'open');
-            showToast('Impossible de modifier l’état de la boutique');
+            showToast(errorMessage);
         }
         maintenanceToggle.disabled = false;
     });

@@ -26,7 +26,10 @@ const tiktokUrl = process.env.TIKTOK_URL || 'https://www.tiktok.com/@prokhanesag
 const instagramUrl = process.env.INSTAGRAM_URL || 'https://www.instagram.com/porokhane_sagnese_vip?igsh=dDR5eWNicXBvd3di';
 const orderProofDir = path.join(__dirname, 'uploads', 'orders');
 const orderProofRetentionDays = Number(process.env.ORDER_PROOF_RETENTION_DAYS || 30);
-const siteSettingsFile = path.join(__dirname, 'data', 'site-settings.json');
+const siteSettingsFile = process.env.SITE_SETTINGS_PATH
+  || (process.env.RENDER ? '/var/data/site-settings.json' : path.join(__dirname, 'data', 'site-settings.json'));
+const bundledSiteSettingsFile = path.join(__dirname, 'data', 'site-settings.json');
+const previewToken = crypto.randomBytes(32).toString('hex');
 const isProduction = process.env.NODE_ENV === 'production';
 
 app.use(bodyParser.json({ limit: '10mb' }));
@@ -46,27 +49,51 @@ app.use(session({
 
 function getSiteSettings() {
   try {
-    const settings = JSON.parse(fs.readFileSync(siteSettingsFile, 'utf8'));
-    return { comingSoon: settings.comingSoon === true };
+    const settingsPath = fs.existsSync(siteSettingsFile) ? siteSettingsFile : bundledSiteSettingsFile;
+    const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+    if (settings.shopStatus === 'open' || settings.shopStatus === 'maintenance') {
+      return { shopStatus: settings.shopStatus };
+    }
+    if (settings.comingSoon === true) return { shopStatus: 'maintenance' };
+    return { shopStatus: 'open' };
   } catch {
-    return { comingSoon: false };
+    return { shopStatus: 'open' };
   }
 }
 
 function saveSiteSettings(settings) {
   fs.mkdirSync(path.dirname(siteSettingsFile), { recursive: true });
-  fs.writeFileSync(siteSettingsFile, JSON.stringify({ comingSoon: settings.comingSoon === true }, null, 2));
+  fs.writeFileSync(siteSettingsFile, JSON.stringify({
+    shopStatus: settings.shopStatus === 'maintenance' ? 'maintenance' : 'open'
+  }, null, 2));
+}
+
+function parseCookies(cookieHeader = '') {
+  return cookieHeader.split(';').reduce((cookies, item) => {
+    const separator = item.indexOf('=');
+    if (separator < 0) return cookies;
+    const key = item.slice(0, separator).trim();
+    const value = item.slice(separator + 1).trim();
+    cookies[key] = decodeURIComponent(value);
+    return cookies;
+  }, {});
 }
 
 app.use((req, res, next) => {
-  const allowedDuringComingSoon = req.path === '/coming-soon.html'
-    || req.path.startsWith('/img/')
-    || req.path.startsWith('/admin')
-    || req.path.startsWith('/api/admin')
-    || req.path === '/api/login'
-    || req.path === '/api/logout';
+  const settings = getSiteSettings();
+  if (settings.shopStatus !== 'maintenance') return next();
 
-  if (!getSiteSettings().comingSoon || allowedDuringComingSoon) return next();
+  const cookies = parseCookies(req.headers.cookie);
+  const isAdminPreview = req.session?.user && cookies.shop_preview === previewToken;
+  const allowedDuringMaintenance = req.path === '/coming-soon.html'
+    || req.path.startsWith('/img/')
+    || req.path.startsWith('/uploads/')
+    || req.path.startsWith('/admin')
+    || req.path.startsWith('/api')
+    || isAdminPreview;
+
+  if (allowedDuringMaintenance) return next();
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   return res.sendFile(path.join(__dirname, 'coming-soon.html'));
 });
 
@@ -407,10 +434,21 @@ app.get('/api/admin/site-settings', requireLogin, (req, res) => {
   res.json(getSiteSettings());
 });
 
-app.post('/api/admin/coming-soon', requireLogin, (req, res) => {
-  const comingSoon = req.body.enabled === true || req.body.enabled === 'true';
-  saveSiteSettings({ comingSoon });
-  res.json({ success: true, comingSoon });
+app.post('/api/admin/shop-status', requireLogin, (req, res) => {
+  const allowedStatuses = ['open', 'maintenance'];
+  const { status } = req.body;
+  if (!allowedStatuses.includes(status)) {
+    return res.status(400).json({ success: false, error: 'État de boutique invalide' });
+  }
+
+  saveSiteSettings({ shopStatus: status });
+  return res.json({ success: true, shopStatus: status });
+});
+
+app.post('/api/admin/preview/start', requireLogin, (req, res) => {
+  const secure = isProduction ? '; Secure' : '';
+  res.setHeader('Set-Cookie', `shop_preview=${encodeURIComponent(previewToken)}; Max-Age=1800; Path=/; HttpOnly; SameSite=Strict${secure}`);
+  res.json({ success: true });
 });
 
 const loginLimiter = rateLimit({

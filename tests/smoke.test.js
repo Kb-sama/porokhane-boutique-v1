@@ -64,3 +64,30 @@ test('POST /api/login rejette les identifiants invalides', async () => {
   assert.equal(response.status, 401);
   assert.ok(body.error);
 });
+
+test('POST /api/admin/shop-status accepte le payload shopStatus', async () => {
+  const loginResponse = await fetch(`${baseUrl}/api/login`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      email: 'mame79915@gmail.com',
+      password: 'V7!qR2#nL9@xP4$kZ8&mT6',
+    }),
+  });
+
+  const cookieHeader = loginResponse.headers.get('set-cookie');
+  assert.ok(cookieHeader, 'La session admin doit être créée');
+
+  const updateResponse = await fetch(`${baseUrl}/api/admin/shop-status`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      cookie: cookieHeader,
+    },
+    body: JSON.stringify({ shopStatus: 'maintenance' }),
+  });
+
+  const body = await updateResponse.json();
+  assert.equal(updateResponse.status, 200);
+  assert.equal(body.shopStatus, 'maintenance');
+});

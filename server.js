@@ -68,6 +68,12 @@ function saveSiteSettings(settings) {
   }, null, 2));
 }
 
+function normalizeShopStatusValue(payload = {}) {
+  const candidate = payload.shopStatus ?? payload.status ?? payload.mode ?? payload.shop_mode;
+  if (candidate === 'maintenance' || candidate === 'open') return candidate;
+  return null;
+}
+
 function parseCookies(cookieHeader = '') {
   return cookieHeader.split(';').reduce((cookies, item) => {
     const separator = item.indexOf('=');
@@ -435,14 +441,14 @@ app.get('/api/admin/site-settings', requireLogin, (req, res) => {
 });
 
 app.post('/api/admin/shop-status', requireLogin, (req, res) => {
-  const allowedStatuses = ['open', 'maintenance'];
-  const { status } = req.body;
-  if (!allowedStatuses.includes(status)) {
+  const status = normalizeShopStatusValue(req.body || {});
+
+  if (!status) {
     return res.status(400).json({ success: false, error: 'État de boutique invalide' });
   }
 
   saveSiteSettings({ shopStatus: status });
-  return res.json({ success: true, shopStatus: status });
+  return res.json({ success: true, shopStatus: status, status });
 });
 
 app.post('/api/admin/preview/start', requireLogin, (req, res) => {

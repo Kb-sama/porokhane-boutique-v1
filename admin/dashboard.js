@@ -84,12 +84,13 @@ if (maintenanceToggle) {
         const response = await fetch('/api/admin/shop-status', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ status })
+            body: JSON.stringify({ shopStatus: status })
         });
         if (response.ok) {
             const result = await response.json();
-            maintenanceToggle.checked = result.shopStatus === 'maintenance';
-            updateShopStatus(result.shopStatus);
+            const nextStatus = result.shopStatus || result.status || status;
+            maintenanceToggle.checked = nextStatus === 'maintenance';
+            updateShopStatus(nextStatus);
             showToast('État de la boutique mis à jour');
         } else {
             maintenanceToggle.checked = !maintenanceToggle.checked;
